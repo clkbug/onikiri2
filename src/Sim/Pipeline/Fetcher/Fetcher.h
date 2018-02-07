@@ -44,6 +44,7 @@
 #include "Sim/Pipeline/PipelineNodeBase.h"
 #include "Sim/Foundation/Hook/HookDecl.h"
 #include "Sim/Op/OpClassStatistics.h"
+#include "Sim/Op/OpInitArgs.h"
 
 namespace Onikiri
 {
@@ -75,7 +76,18 @@ namespace Onikiri
         // because 'op' may be not created yet at Fetch().
         struct FetchHookParam
         {
-            OpIterator op;  
+            typedef
+                fixed_sized_buffer< OpIterator, SimISAInfo::MAX_OP_INFO_COUNT_PER_PC, Fetcher >
+                FetchedOpArray;
+            OpIterator op;
+            OpInitArgs args;
+            FetchedOpArray& fetchedOp;
+            GlobalClock* globalClock;
+            ForwardEmulator* forwardEmulator;
+            FetchHookParam(OpIterator op, OpInitArgs args, FetchedOpArray& fetchedOp, GlobalClock* globalClock, ForwardEmulator* forwardEmulator)
+                : op(op), args(args), fetchedOp(fetchedOp), globalClock(globalClock), forwardEmulator(forwardEmulator)
+            {
+            }
         };
 
         // A hook parameter for s_fetchSteeringHook.

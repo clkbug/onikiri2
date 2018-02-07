@@ -297,20 +297,20 @@ void Fetcher::Fetch(Thread* thread, FetchedOpArray& fetchedOp, PC pc, OpInfo** i
 
     fetchedOp.clear();
     for( int mopIndex = 0; mopIndex < numOp; ++mopIndex ) {
+        OpInitArgs args =
+        {
+            &pc,                        // PC*      pc;
+            infoArray[mopIndex],        // OpInfo*  opInfo;
+            mopIndex,                   // int      no;
+            m_globalClock->GetInsnID(), // u64      globalSerialID;
+            baseSerialID + mopIndex,    // u64      serialID;
+            baseRetireID + mopIndex,    // u64      retireID;
+            core,                       // Core*    core;
+            thread                      // Thread*  thread;
+        };
 
-        FetchHookParam param;
+        FetchHookParam param(nullptr, args, fetchedOp, m_globalClock, m_forwardEmulator);
         HOOK_SECTION_PARAM( s_fetchHook, param ){
-            OpInitArgs args = 
-            {
-                &pc,                        // PC*      pc;
-                infoArray[ mopIndex ],      // OpInfo* opInfo;
-                mopIndex,                   // int      no;
-                m_globalClock->GetInsnID(), // u64      globalSerialID;
-                baseSerialID + mopIndex,    // u64      serialID;
-                baseRetireID + mopIndex,    // u64      retireID;
-                core,                       // Core*        core;
-                thread                      // Thread*  thread;
-            };
 
             OpIterator op = InorderList->ConstructOp( args );
             param.op = op;
