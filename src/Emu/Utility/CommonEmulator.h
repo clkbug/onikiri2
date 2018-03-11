@@ -385,7 +385,7 @@ namespace Onikiri {
                 std::pair<OpInfo**, int> ops_pair;
                 HOOK_SECTION_PARAM(s_getOpHook, ops_pair)
                 {
-                    ops_pair = GetOpBody(pc);
+                    ops_pair = GetOp(pc);
                 }
                 OpInfo** opInfoArray = ops_pair.first;
                 int opCount = ops_pair.second;
