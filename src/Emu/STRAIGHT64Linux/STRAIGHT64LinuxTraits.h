@@ -4,8 +4,8 @@
 // Copyright (c) 2005-2008 Hironori Ichibayashi.
 // Copyright (c) 2008-2009 Kazuo Horio.
 // Copyright (c) 2009-2015 Naruki Kurata.
+// Copyright (c) 2005-2015 Ryota Shioya.
 // Copyright (c) 2005-2015 Masahiro Goshima.
-// Copyright (c) 2005-2017 Ryota Shioya.
 // 
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -29,45 +29,29 @@
 // 
 
 
-#include <pch.h>
-#include "Emu/EmulatorFactory.h"
-#include "Emu/AlphaLinux/AlphaLinuxEmulator.h"
-#include "Emu/PPC64Linux/PPC64LinuxEmulator.h"
-#include "Emu/RISCV32Linux/RISCV32LinuxEmulator.h"
-#include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxEmulator.h"
+#ifndef EMU_STRAIGHT64LINUX_STRAIGHT64_TRAITS_H
+#define EMU_STRAIGHT64LINUX_STRAIGHT64_TRAITS_H
 
-using namespace Onikiri;
+#include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxSyscallConv.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxLoader.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHT64Info.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHT64Converter.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHT64OpInfo.h"
 
-EmulatorFactory::EmulatorFactory()
-{
-}
+namespace Onikiri {
+    namespace STRAIGHT64Linux {
 
-EmulatorFactory::~EmulatorFactory()
-{
-}
+        struct STRAIGHT64LinuxTraits {
+            typedef STRAIGHT64Info ISAInfoType;
+            typedef STRAIGHT64OpInfo OpInfoType;
+            typedef STRAIGHT64Converter ConverterType;
+            typedef STRAIGHT64LinuxLoader LoaderType;
+            typedef STRAIGHT64LinuxSyscallConv SyscallConvType;
 
+            static const bool IsBigEndian = false;
+        };
 
-EmulatorIF* EmulatorFactory::Create(const String& systemName, SystemIF* simSystem)
-{
-    if (systemName == "AlphaLinux") {
-        return new AlphaLinux::AlphaLinuxEmulator( simSystem );
-    }
-    else if (systemName == "PPC64Linux") {
-        return new PPC64Linux::PPC64LinuxEmulator(simSystem);
-    }
-    else if (systemName == "RISCV32Linux") {
-        return new RISCV32Linux::RISCV32LinuxEmulator(simSystem);
-    }
-    else if (systemName == "STRAIGHT64Linux") {
-        return new STRAIGHT64Linux::STRAIGHT64LinuxEmulator(simSystem);
-    }
+    } // namespace STRAIGHT64Linux
+} // namespace Onikiri
 
-    THROW_RUNTIME_ERROR(
-        "Unknown system name specified.\n"
-        "This parameter must be one of the following strings : \n"
-        "[AlphaLinux,PPC64Linux]"
-    );
-
-    return 0;
-}
-
+#endif

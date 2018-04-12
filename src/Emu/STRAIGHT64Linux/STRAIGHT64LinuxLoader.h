@@ -29,45 +29,26 @@
 // 
 
 
-#include <pch.h>
-#include "Emu/EmulatorFactory.h"
-#include "Emu/AlphaLinux/AlphaLinuxEmulator.h"
-#include "Emu/PPC64Linux/PPC64LinuxEmulator.h"
-#include "Emu/RISCV32Linux/RISCV32LinuxEmulator.h"
-#include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxEmulator.h"
+#ifndef EMU_STRAIGHT64LINUX_STRAIGHT64_LOADER_H
+#define EMU_STRAIGHT64LINUX_STRAIGHT64_LOADER_H
 
-using namespace Onikiri;
-
-EmulatorFactory::EmulatorFactory()
-{
-}
-
-EmulatorFactory::~EmulatorFactory()
-{
-}
+#include "Emu/Utility/System/Loader/Linux64Loader.h"
 
 
-EmulatorIF* EmulatorFactory::Create(const String& systemName, SystemIF* simSystem)
-{
-    if (systemName == "AlphaLinux") {
-        return new AlphaLinux::AlphaLinuxEmulator( simSystem );
-    }
-    else if (systemName == "PPC64Linux") {
-        return new PPC64Linux::PPC64LinuxEmulator(simSystem);
-    }
-    else if (systemName == "RISCV32Linux") {
-        return new RISCV32Linux::RISCV32LinuxEmulator(simSystem);
-    }
-    else if (systemName == "STRAIGHT64Linux") {
-        return new STRAIGHT64Linux::STRAIGHT64LinuxEmulator(simSystem);
-    }
+namespace Onikiri {
+    namespace STRAIGHT64Linux {
+        // STRAIGHT64Linux ELF 用のローダー
+        class STRAIGHT64LinuxLoader : public EmulatorUtility::Linux64Loader
+        {
+        public:
+            STRAIGHT64LinuxLoader();
+            virtual ~STRAIGHT64LinuxLoader();
 
-    THROW_RUNTIME_ERROR(
-        "Unknown system name specified.\n"
-        "This parameter must be one of the following strings : \n"
-        "[AlphaLinux,PPC64Linux]"
-    );
+            // LoaderIF の実装
+            virtual u64 GetInitialRegValue(int index) const;
+        };
 
-    return 0;
-}
+    } // namespace STRAIGHT64Linux
+} // namespace Onikiri
 
+#endif

@@ -238,6 +238,9 @@
     <Filter Include="src\Emu\RISCV32Linux">
       <UniqueIdentifier>{0ad41bb9-0097-481a-9a79-17b9b2092b76}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Emu\STRAIGHT64Linux">
+      <UniqueIdentifier>{ac561880-36dd-40e5-823b-d2811b5d8cec}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\Types.h">
@@ -1053,6 +1056,39 @@
     <ClInclude Include="..\..\..\src\Emu\Utility\System\Syscall\Linux32SyscallConv.h">
       <Filter>src\Emu\Utility\System\Syscall</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64Converter.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64Decoder.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64Info.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64LinuxEmulator.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64LinuxLoader.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64LinuxSyscallConv.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64LinuxSyscallID.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64LinuxTraits.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64Operation.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64OpInfo.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHTSystem.h">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\Main.cpp">
@@ -1522,6 +1558,24 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\Emu\Utility\System\Syscall\Linux32SyscallConv.cpp">
       <Filter>src\Emu\Utility\System\Syscall</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64Converter.cpp">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64Decoder.cpp">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64Info.cpp">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64LinuxLoader.cpp">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHT64LinuxSyscallConv.cpp">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHTSystem.cpp">
+      <Filter>src\Emu\STRAIGHT64Linux</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

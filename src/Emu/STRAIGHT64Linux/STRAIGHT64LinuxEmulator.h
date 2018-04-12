@@ -29,45 +29,23 @@
 // 
 
 
-#include <pch.h>
-#include "Emu/EmulatorFactory.h"
-#include "Emu/AlphaLinux/AlphaLinuxEmulator.h"
-#include "Emu/PPC64Linux/PPC64LinuxEmulator.h"
-#include "Emu/RISCV32Linux/RISCV32LinuxEmulator.h"
-#include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxEmulator.h"
+#ifndef EMU_STRAIGHT64LINUX_STRAIGHT64_EMULATOR_H
+#define EMU_STRAIGHT64LINUX_STRAIGHT64_EMULATOR_H
 
-using namespace Onikiri;
+#include "Emu/Utility/CommonEmulator.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxTraits.h"
 
-EmulatorFactory::EmulatorFactory()
-{
-}
+namespace Onikiri {
+    namespace STRAIGHT64Linux {
 
-EmulatorFactory::~EmulatorFactory()
-{
-}
+        class STRAIGHT64LinuxEmulator : public EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits>
+        {
+        public:
+            typedef EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits> BaseEmulator;
+            STRAIGHT64LinuxEmulator(SystemIF* simSystem) : BaseEmulator(simSystem) {}
+        };
 
+    } // namespace STRAIGHT64Linux
+} // namespace Onikiri
 
-EmulatorIF* EmulatorFactory::Create(const String& systemName, SystemIF* simSystem)
-{
-    if (systemName == "AlphaLinux") {
-        return new AlphaLinux::AlphaLinuxEmulator( simSystem );
-    }
-    else if (systemName == "PPC64Linux") {
-        return new PPC64Linux::PPC64LinuxEmulator(simSystem);
-    }
-    else if (systemName == "RISCV32Linux") {
-        return new RISCV32Linux::RISCV32LinuxEmulator(simSystem);
-    }
-    else if (systemName == "STRAIGHT64Linux") {
-        return new STRAIGHT64Linux::STRAIGHT64LinuxEmulator(simSystem);
-    }
-
-    THROW_RUNTIME_ERROR(
-        "Unknown system name specified.\n"
-        "This parameter must be one of the following strings : \n"
-        "[AlphaLinux,PPC64Linux]"
-    );
-
-    return 0;
-}
-
+#endif
