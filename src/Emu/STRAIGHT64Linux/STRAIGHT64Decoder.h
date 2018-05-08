@@ -54,7 +54,7 @@ namespace Onikiri
             {
                 // 即値
                 boost::array<u64, 2> Imm;
-                // オペランド・レジスタ(dest, src1..3)
+                // オペランド・レジスタ(dest, src1, src2)
                 boost::array<int, 3> Reg;
 
                 u32 CodeWord;

@@ -31,6 +31,7 @@
 
 #include <pch.h>
 #include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxLoader.h"
+#include "STRAIGHT64Info.h"
 
 using namespace std;
 using namespace boost;
@@ -53,9 +54,7 @@ STRAIGHT64LinuxLoader::~STRAIGHT64LinuxLoader()
 
 u64 STRAIGHT64LinuxLoader::GetInitialRegValue(int index) const
 {
-    const int STACK_POINTER_REGNUM = 2;
-
-    if (index == STACK_POINTER_REGNUM)
+    if (index == STRAIGHT64Info::StackPointerRegIndex)
         return GetInitialSp();
     else
         return 0;

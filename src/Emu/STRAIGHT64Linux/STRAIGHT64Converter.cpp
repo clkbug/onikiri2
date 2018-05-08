@@ -57,52 +57,9 @@ using namespace Onikiri::STRAIGHT64Linux::Operation;
 namespace {
 
     // 各命令形式に対するオペコードを得るためのマスク (0のビットが引数)
-    static const u32 MASK_EXACT = 0xffffffff;  // 全bitが一致
-
-    static const u32 MASK_LUI =     0x0000007f; // U-type, opcode
-    static const u32 MASK_AUIPC =   0x0000007f; // U-type, opcode
-
-    static const u32 MASK_IMM =     0x0000707f; // I-type, funct3 + opcode
-    static const u32 MASK_SHIFT =   0xfe00707f; // I-type?, funct3 + opcode
-    static const u32 MASK_INT =     0xfe00707f; // R-type, funct7 + funct3 + opcode
-    
-    static const u32 MASK_JAL =     0x0000007f; // J-type
-    static const u32 MASK_J =       0x00000fff; // J-type, rd
-
-    static const u32 MASK_JALR =    0x0000707f; // J-type?, 
-    static const u32 MASK_CALLRET = 0x000fffff; // J-type, rs1, funct3, rd, opcode
-    static const u32 MASK_CALL =    0x00007fff; // J-type, funct3, rd, opcode
-    static const u32 MASK_RET =     0x000ff07f; // J-type, rs1, funct3, rd, opcode
-
-    static const u32 MASK_BR  =     0x0000707f; // B-type, funct3
-
-    static const u32 MASK_ST  =     0x0000707f; // B-type, funct3
-    static const u32 MASK_LD  =     0x0000707f; // B-type, funct3
-
+    const u32 MASK_EXACT = 0xffffffff;  // 全bitが一致
+    const u32 MASK_OPCODE = 0xfc000000; // 最上位6ビットがOPCODE
 }
-
-#define OPCODE_LUI()    0x37
-#define OPCODE_AUIPC()  0x17
-
-#define OPCODE_IMM(f) (u32)(((f) << 12) | 0x13)
-#define OPCODE_SHIFT(f7, f3) (u32)(((f7) << 25) | ((f3) << 12) | 0x13)
-#define OPCODE_INT(f7, f3) (u32)(((f7) << 25) | ((f3) << 12) | 0x33)
-
-#define OPCODE_JAL() (0x6f)
-#define OPCODE_J()   (0x6f | (0 << 7))  // rd == x0
-
-#define OPCODE_JALR()            (0x67 | (0 << 12))
-#define OPCODE_CALLRET(rd, rs1)  (0x67 | (rd << 7) | (0 << 12) | (rs1 << 15))
-#define OPCODE_CALL(rd)  (0x67 | (rd << 7) | (0 << 12))
-#define OPCODE_RET(rs1)  (0x67 | (0 << 12) | (rs1 << 15))
-
-#define OPCODE_BR(f)  (u32)(((f) << 12) | 0x63)
-
-#define OPCODE_LD(f)  (u32)(((f) << 12) | 0x03)
-#define OPCODE_ST(f)  (u32)(((f) << 12) | 0x23)
-
-#define OPCODE_ECALL()  (u32)(0x73)
-
 
 namespace {
     // オペランドのテンプレート
@@ -111,10 +68,10 @@ namespace {
 
     // レジスタ・テンプレートに使用する番号
     // 本物のレジスタ番号を使ってはならない
-    static const int RegTemplateBegin = -20;    // 命令中のレジスタ番号に変換 (数値に意味はない．本物のレジスタ番号と重ならずかつ一意であればよい)
-    static const int RegTemplateEnd = RegTemplateBegin+4-1;
-    static const int ImmTemplateBegin = -30;    // 即値に変換
-    static const int ImmTemplateEnd = ImmTemplateBegin+2-1;
+    const int RegTemplateBegin = -20;    // 命令中のレジスタ番号に変換 (数値に意味はない．本物のレジスタ番号と重ならずかつ一意であればよい)
+    const int RegTemplateEnd = RegTemplateBegin+4-1;
+    const int ImmTemplateBegin = -30;    // 即値に変換
+    const int ImmTemplateEnd = ImmTemplateBegin+2-1;
 
     const int R0 = RegTemplateBegin+0;
     const int R1 = RegTemplateBegin+1;
@@ -125,8 +82,6 @@ namespace {
 
 #define STRAIGHT64_DSTOP(n) STRAIGHT64DstOperand<n>
 #define STRAIGHT64_SRCOP(n) STRAIGHT64SrcOperand<n>
-//#define STRAIGHT64_SRCOPFLOAT(n) Cast< float, AsFP< double, SrcOperand<n> > >
-//#define STRAIGHT64_SRCOPDOUBLE(n) AsFP< double, SrcOperand<n> >
 
 #define D0 STRAIGHT64_DSTOP(0)
 #define D1 STRAIGHT64_DSTOP(1)
@@ -134,128 +89,21 @@ namespace {
 #define S1 STRAIGHT64_SRCOP(1)
 #define S2 STRAIGHT64_SRCOP(2)
 #define S3 STRAIGHT64_SRCOP(3)
-/*
-#define SF0 STRAIGHT64_SRCOPFLOAT(0)
-#define SF1 STRAIGHT64_SRCOPFLOAT(1)
-#define SF2 STRAIGHT64_SRCOPFLOAT(2)
-#define SF3 STRAIGHT64_SRCOPFLOAT(3)
-#define SD0 STRAIGHT64_SRCOPDOUBLE(0)
-#define SD1 STRAIGHT64_SRCOPDOUBLE(1)
-#define SD2 STRAIGHT64_SRCOPDOUBLE(2)
-#define SD3 STRAIGHT64_SRCOPDOUBLE(3)
-*/
-// 00000000 PAL 00 = halt
-// 2ffe0000 ldq_u r31, r30(0) = unop
-// 471f041f mslql r31, r31, r31 = nop
-
-// no trap implemented
 
 // 投機的にフェッチされたときにはエラーにせず，実行されたときにエラーにする
 // syscallにすることにより，直前までの命令が完了してから実行される (実行は投機的でない)
 STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefUnknown = 
-    {"unknown", MASK_EXACT, 0,  1, {{OpClassCode::UNDEF,    {-1, -1}, {I0, -1, -1, -1}, STRAIGHT64Converter::STRAIGHTUnknownOperation}}};
+    {"unknown", MASK_EXACT, 0,  1, {{OpClassCode::UNDEF,    {-1, -1}, {I0, -1, -1}, STRAIGHT64Converter::STRAIGHTUnknownOperation}}};
 
 
 // branchは，OpInfo 列の最後じゃないとだめ
 STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] = 
 {
-    // LUI/AUIPC
     //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"lui",     MASK_LUI,   OPCODE_LUI(),   1,  { {OpClassCode::iALU,   {R0, -1},   {I0, -1, -1, -1},   Set<D0, STRAIGHT64Lui<S0> >} } },
-    {"auipc",   MASK_AUIPC, OPCODE_AUIPC(), 1,  { {OpClassCode::iALU,   {R0, -1},   {I0, -1, -1, -1},   Set<D0, STRAIGHT64Auipc<S0> >} } },
-    
-    // IMM
-    //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"addi",    MASK_IMM,   OPCODE_IMM(0),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, IntAdd<u32, S0, S1> > } } },
-    {"slti",    MASK_IMM,   OPCODE_IMM(2),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessSigned<u32> > > } } },
-    {"sltiu",   MASK_IMM,   OPCODE_IMM(3),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessUnsigned<u32> > > } } },
-    {"xori",    MASK_IMM,   OPCODE_IMM(4),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, BitXor<u32, S0, S1> > } } },
-    {"ori",     MASK_IMM,   OPCODE_IMM(6),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, BitOr<u32, S0, S1> > } } },
-    {"andi",    MASK_IMM,   OPCODE_IMM(7),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, BitAnd<u32, S0, S1> > } } },
-    
-    // SHIFT
-    //{Name,    Mask,       Opcode,                 nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"slli",    MASK_SHIFT, OPCODE_SHIFT(0x00, 1),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, LShiftL<u32, S0, S1, 0x1f > > } } },
-    {"srli",    MASK_SHIFT, OPCODE_SHIFT(0x00, 5),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, LShiftR<u32, S0, S1, 0x1f > > } } },
-    {"srai",    MASK_SHIFT, OPCODE_SHIFT(0x20, 5),  1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, AShiftR<u32, S0, S1, 0x1f > > } } },
-
-    // INT
-    //{Name,    Mask,       Opcode,                 nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"add",     MASK_INT,   OPCODE_INT(0x00, 0),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, IntAdd<u32, S0, S1> > } } },
-    {"sub",     MASK_INT,   OPCODE_INT(0x20, 0),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, IntSub<u32, S0, S1> > } } },
-    {"sll",     MASK_INT,   OPCODE_INT(0x00, 1),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, LShiftL<u32, S0, S1, 0x1f > > } } },
-    {"slt",     MASK_INT,   OPCODE_INT(0x00, 2),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessSigned<u32> > > } } },
-    {"sltu",    MASK_INT,   OPCODE_INT(0x00, 3),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessUnsigned<u32> > > } } },
-    {"xor",     MASK_INT,   OPCODE_INT(0x00, 4),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, BitXor<u32, S0, S1> > } } },
-    {"srl",     MASK_INT,   OPCODE_INT(0x00, 5),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, LShiftR<u32, S0, S1, 0x1f > > } } },
-    {"sra",     MASK_INT,   OPCODE_INT(0x20, 5),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, AShiftR<u32, S0, S1, 0x1f > > } } },
-    {"or",      MASK_INT,   OPCODE_INT(0x00, 6),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, BitOr<u32, S0, S1> > } } },
-    {"and",     MASK_INT,   OPCODE_INT(0x00, 7),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, BitAnd<u32, S0, S1> > } } },
-
-    // JAL
-    // J must be placed before JAL, because MASK_JAL/OPCODE_JAL include J
-    //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,              Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"j",       MASK_J,     OPCODE_J(),     1,  { { OpClassCode::iJUMP,     {-1, -1},   {I0, -1, -1, -1},   STRAIGHT64BranchRelUncond<S0> } } },
-    {"jal",     MASK_JAL,   OPCODE_JAL(),   1,  { { OpClassCode::CALL_JUMP, {R0, -1},   {I0, -1, -1, -1},   STRAIGHT64CallRelUncond<D0, S0> } } },
-    
-    // JALR
-    // CALL/RET must be placed before JALR, because MASK_JALR/OPCODE_JALR include CALL/RET
-    //    rd    rs1    rs1=rd   RAS action
-    //    !link !link  -        none
-    //    !link link   -        pop
-    //    link  !link  -        push
-    //    link  link   0        push and pop
-    //    link  link   1        push
-    //{Name,    Mask,           Opcode,                 nOp,{ OpClassCode,              Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"jalr",    MASK_CALLRET,   OPCODE_CALLRET(1, 5),   1,  { { OpClassCode::iJUMP,     {R0, -1},   {R1, I0, -1, -1},   STRAIGHT64CallAbsUncond<D0, S0, S1> } } },
-    {"jalr",    MASK_CALLRET,   OPCODE_CALLRET(5, 1),   1,  { { OpClassCode::iJUMP,     {R0, -1},   {R1, I0, -1, -1},   STRAIGHT64CallAbsUncond<D0, S0, S1> } } },
-    {"jalr",    MASK_CALL,      OPCODE_CALL(5),         1,  { { OpClassCode::CALL_JUMP, {R0, -1},   {R1, I0, -1, -1},   STRAIGHT64CallAbsUncond<D0, S0, S1> } } },
-    {"jalr",    MASK_CALL,      OPCODE_CALL(1),         1,  { { OpClassCode::CALL_JUMP, {R0, -1},   {R1, I0, -1, -1},   STRAIGHT64CallAbsUncond<D0, S0, S1> } } },
-    {"jalr",    MASK_RET,       OPCODE_RET(5),          1,  { { OpClassCode::RET,       {R0, -1},   {R1, I0, -1, -1},   STRAIGHT64CallAbsUncond<D0, S0, S1> } } },
-    {"jalr",    MASK_RET,       OPCODE_RET(1),          1,  { { OpClassCode::RET,       {R0, -1},   {R1, I0, -1, -1},   STRAIGHT64CallAbsUncond<D0, S0, S1> } } },
-    {"jalr",    MASK_CALL,      OPCODE_CALL(0),         1,  { { OpClassCode::iJUMP,     {-1, -1},   {R1, I0, -1, -1},   STRAIGHT64CallAbsUncond<D0, S0, S1> } } },
-    {"jalr",    MASK_JALR,      OPCODE_JALR(),          1,  { { OpClassCode::CALL_JUMP, {R0, -1},   {R1, I0, -1, -1},   STRAIGHT64CallAbsUncond<D0, S0, S1> } } },
-
-    // Branch
-    //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"beq",     MASK_BR,    OPCODE_BR(0),   1,  { { OpClassCode::iBC,   {-1, -1},   {R0, R1, I0, -1},   STRAIGHT64BranchRelCond<S2, Compare<S0, S1, IntCondEqual<u32> > > } } },
-    {"bne",     MASK_BR,    OPCODE_BR(1),   1,  { { OpClassCode::iBC,   {-1, -1},   {R0, R1, I0, -1},   STRAIGHT64BranchRelCond<S2, Compare<S0, S1, IntCondNotEqual<u32> > > } } },
-    {"blt",     MASK_BR,    OPCODE_BR(4),   1,  { { OpClassCode::iBC,   {-1, -1},   {R0, R1, I0, -1},   STRAIGHT64BranchRelCond<S2, Compare<S0, S1, IntCondLessSigned<u32> > > } } },
-    {"bge",     MASK_BR,    OPCODE_BR(5),   1,  { { OpClassCode::iBC,   {-1, -1},   {R0, R1, I0, -1},   STRAIGHT64BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualSigned<u32> > > } } },
-    {"bltu",    MASK_BR,    OPCODE_BR(6),   1,  { { OpClassCode::iBC,   {-1, -1},   {R0, R1, I0, -1},   STRAIGHT64BranchRelCond<S2, Compare<S0, S1, IntCondLessUnsigned<u32> > > } } },
-    {"bgeu",    MASK_BR,    OPCODE_BR(7),   1,  { { OpClassCode::iBC,   {-1, -1},   {R0, R1, I0, -1},   STRAIGHT64BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualUnsigned<u32> > > } } },
-
-    // Store
-    //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"sb",      MASK_ST,    OPCODE_ST(0),   1,  { { OpClassCode::iST,   {-1, -1},   {R1, R0, I0, -1},   Store<u8, S0, STRAIGHT64Addr<S1, S2> > } } },
-    {"sh",      MASK_ST,    OPCODE_ST(1),   1,  { { OpClassCode::iST,   {-1, -1},   {R1, R0, I0, -1},   Store<u16, S0, STRAIGHT64Addr<S1, S2> > } } },
-    {"sw",      MASK_ST,    OPCODE_ST(2),   1,  { { OpClassCode::iST,   {-1, -1},   {R1, R0, I0, -1},   Store<u32, S0, STRAIGHT64Addr<S1, S2> > } } },
-
-    // Load
-    //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"lb",      MASK_LD,    OPCODE_LD(0),   1,  { { OpClassCode::iLD,   {R0, -1},   {R1, I0, -1, -1},   SetSext<D0, Load<u8,  STRAIGHT64Addr<S0, S1> > > } } },
-    {"lh",      MASK_LD,    OPCODE_LD(1),   1,  { { OpClassCode::iLD,   {R0, -1},   {R1, I0, -1, -1},   SetSext<D0, Load<u16, STRAIGHT64Addr<S0, S1> > > } } },
-    {"lw",      MASK_LD,    OPCODE_LD(2),   1,  { { OpClassCode::iLD,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, Load<u32, STRAIGHT64Addr<S0, S1> > > } } },
-    {"lb",      MASK_LD,    OPCODE_LD(4),   1,  { { OpClassCode::iLD,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, Load<u8,  STRAIGHT64Addr<S0, S1> > > } } },
-    {"lh",      MASK_LD,    OPCODE_LD(5),   1,  { { OpClassCode::iLD,   {R0, -1},   {R1, I0, -1, -1},   Set<D0, Load<u16, STRAIGHT64Addr<S0, S1> > > } } },
-
-    // System
-    //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"ecall",   MASK_EXACT, OPCODE_ECALL(),   2,  {
-        {OpClassCode::syscall,          {17, -1}, {17, 10, 11, -1}, STRAIGHT64SyscallSetArg} ,
-        {OpClassCode::syscall_branch,   {10, -1}, {17, 12, 13, -1}, STRAIGHT64SyscallCore},
-    }},
-    
-    // RV32M
-    //{Name,    Mask,       Opcode,                 nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"mul",     MASK_INT,   OPCODE_INT(0x01, 0),    1,  { {OpClassCode::iMUL,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, IntMul<u32, S0, S1> > } } },
-    {"mulh",    MASK_INT,   OPCODE_INT(0x01, 1),    1,  { {OpClassCode::iMUL,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, IntUMulh32<s64, s64, S0, S1> > } } },
-    {"mulhus",  MASK_INT,   OPCODE_INT(0x01, 2),    1,  { {OpClassCode::iMUL,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, IntUMulh32<u64, u64, S0, S1> > } } },
-    {"mulhu",   MASK_INT,   OPCODE_INT(0x01, 3),    1,  { {OpClassCode::iMUL,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, IntUMulh32<s64, u64, S0, S1> > } } },
-    {"div",     MASK_INT,   OPCODE_INT(0x01, 4),    1,  { {OpClassCode::iDIV,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, STRAIGHT64IntDiv<S0, S1> > } } },
-    {"divu",    MASK_INT,   OPCODE_INT(0x01, 5),    1,  { {OpClassCode::iDIV,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, STRAIGHT64IntDivu<S0, S1> > } } },
-    {"rem",     MASK_INT,   OPCODE_INT(0x01, 6),    1,  { {OpClassCode::iDIV,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, STRAIGHT64IntRem<S0, S1> > } } },
-    {"remu",    MASK_INT,   OPCODE_INT(0x01, 7),    1,  { {OpClassCode::iDIV,   {R0, -1},   {R1, R2, -1, -1},   Set<D0, STRAIGHT64IntRemu<S0, S1> > } } },
+    {"ADDi",    MASK_OPCODE,  9,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntAdd<u32, S0, S1> >} } },
+    {"ADD",     MASK_OPCODE, 10,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntAdd<u32, S0, S1> >} } },
+    {"SUBi",    MASK_OPCODE, 11,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntSub<u32, S0, S1> >} } },
+    {"SUB",     MASK_OPCODE, 12,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntSub<u32, S0, S1> >} } },
 };
 
 //
@@ -273,7 +121,7 @@ STRAIGHT64Converter::~STRAIGHT64Converter()
 }
 
 // srcTemplate に対応するオペランドの種類と，レジスタならば番号を，即値ならばindexを返す
-std::pair<STRAIGHT64Converter::OperandType, int> STRAIGHT64Converter::makkGetActualSrcOperand(int srcTemplate, const DecodedInsn& decoded) const
+std::pair<STRAIGHT64Converter::OperandType, int> STRAIGHT64Converter::GetActualSrcOperand(int srcTemplate, const DecodedInsn& decoded) const
 {
     typedef std::pair<OperandType, int> RetType;
     if (srcTemplate == -1) {
@@ -308,10 +156,7 @@ int STRAIGHT64Converter::GetActualRegNumber(int regTemplate, const DecodedInsn& 
 // レジスタ番号regNumがゼロレジスタかどうかを判定する
 bool STRAIGHT64Converter::IsZeroReg(int regNum) const
 {
-    const int IntZeroReg = 0;
-    const int FPZeroReg = 32;
-
-    return regNum == IntZeroReg || regNum == FPZeroReg;
+    return regNum == STRAIGHT64Info::ZeroRegIndex;
 }
 
 
@@ -324,10 +169,11 @@ void STRAIGHT64Converter::STRAIGHTUnknownOperation(OpEmulationState* opState)
     decoder.Decode( codeWord, &decoded);
 
     stringstream ss;
-    u32 opcode = codeWord & 0x7f;
+    u32 opcode = codeWord & 0xfc000000;
     ss << "unknown instruction : " << hex << setw(8) << codeWord << endl;
     ss << "\topcode : " << hex << opcode << endl;
     ss << "\timm[1] : " << hex << decoded.Imm[1] << endl;
+    ss << "(PC = " << hex << opState->GetPC() << ")" << endl;
 
     THROW_RUNTIME_ERROR(ss.str().c_str());
 }

@@ -81,11 +81,11 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     out->clear();
     out->CodeWord = codeWord;
 
-    u32 opcode = (codeWord >> 26) & 0x3f;
-    INSTTYPE instType = s_opCodeToRegType[opcode];
+    const u32 opcode = (codeWord >> 26) & 0x3f;
+    const INSTTYPE instType = s_opCodeToRegType[opcode];
     
-    out->Reg[0] = 0; // あとでSTRAIGHTSystemがフックして絶対論理レジスタ番号を入れる
-    switch (opcode) {
+    out->Reg[0] = 0;
+    switch (instType) {
     case INSTTYPE_ZEROREG_UIMM:
         out->Imm[0] = ExtractBits(codeWord, 0, 26);
         break;

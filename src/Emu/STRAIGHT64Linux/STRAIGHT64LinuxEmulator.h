@@ -43,6 +43,12 @@ namespace Onikiri {
         public:
             typedef EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits> BaseEmulator;
             STRAIGHT64LinuxEmulator(SystemIF* simSystem) : BaseEmulator(simSystem) {}
+
+            virtual std::pair<OpInfo**, int> GetOp(PC pc)
+            {
+                std::cout << "PC: " << std::hex << pc.address << std::endl;
+                return EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits>::GetOp(pc);
+            }
         };
 
     } // namespace STRAIGHT64Linux

@@ -48,7 +48,7 @@ namespace Onikiri {
             typedef u32 CodeWordType;
             static const int MaxOpInfoDefs = 3;
             static const int MaxDstOperands = OpInfoType::MaxDstRegCount;
-            static const int MaxSrcOperands = 4;    // SrcReg と SrcImm の合計
+            static const int MaxSrcOperands = 3;    // SrcReg と SrcImm の合計
         };
 
         // STRAIGHTの命令を，OpInfo の列に変換する

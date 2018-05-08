@@ -46,9 +46,10 @@ namespace Onikiri {
             static const int MaxDstRegCount = 2;
             static const int MaxImmCount = 2;
 
-            static const int MaxLogRP = 1024;
-            static const int ZeroRegIndex = 1025;
-            static const int RegisterCount = 1025;
+            static const int MaxLogRP = 1024 - 1;
+            static const int ZeroRegIndex = 1024;
+            static const int StackPointerRegIndex = 1025;
+            static const int RegisterCount = 1024;
 
             static const int MAX_MEMORY_ACCESS_WIDTH = 8;
 
