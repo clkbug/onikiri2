@@ -58,7 +58,7 @@ namespace {
 
     // 各命令形式に対するオペコードを得るためのマスク (0のビットが引数)
     const u32 MASK_EXACT = 0xffffffff;  // 全bitが一致
-    const u32 MASK_OPCODE = 0xfc000000; // 最上位6ビットがOPCODE
+    const u32 MASK_OPCODE = 0x000000cf; // 最上位6ビットがOPCODE
 }
 
 namespace {
@@ -97,13 +97,13 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefUnknown =
 
 
 // branchは，OpInfo 列の最後じゃないとだめ
-STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] = 
+STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
 {
     //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"ADDi",    MASK_OPCODE,  9,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntAdd<u32, S0, S1> >} } },
     {"ADD",     MASK_OPCODE, 10,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntAdd<u32, S0, S1> >} } },
-    {"SUBi",    MASK_OPCODE, 11,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntSub<u32, S0, S1> >} } },
+    {"ADDi",    MASK_OPCODE, 11,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntAdd<u32, S0, S1> > } } },
     {"SUB",     MASK_OPCODE, 12,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntSub<u32, S0, S1> >} } },
+    {"SUBi",    MASK_OPCODE, 13,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntSub<u32, S0, S1> > } } },
 };
 
 //
