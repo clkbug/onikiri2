@@ -35,20 +35,43 @@
 #include "Emu/Utility/CommonEmulator.h"
 #include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxTraits.h"
 
-namespace Onikiri {
-    namespace STRAIGHT64Linux {
-
+namespace Onikiri
+{
+    namespace STRAIGHT64Linux
+    {
         class STRAIGHT64LinuxEmulator : public EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits>
         {
         public:
             typedef EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits> BaseEmulator;
-            STRAIGHT64LinuxEmulator(SystemIF* simSystem) : BaseEmulator(simSystem) {}
+            STRAIGHT64LinuxEmulator(SystemIF* simSystem) : BaseEmulator(simSystem)
+            {
+                m_opInfoArrayIndex = 0;
+                for (int i = 0; i < OPINFO_ARRAY_CAPACITY; i++)
+                {
+                    m_opInfoArray[i] = new STRAIGHT64OpInfo(OpClassCode::UNDEF);
+                }
+            }
 
             virtual std::pair<OpInfo**, int> GetOp(PC pc)
             {
-                std::cout << "PC: " << std::hex << pc.address << std::endl;
-                return EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits>::GetOp(pc);
+                std::cout << "GetOp ... PC: " << std::hex << pc.address << std::endl;
+                auto opInfoTuple = EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits>::GetOp(pc);
+                assert(opInfoTuple.second == 1);
+                auto opInfoPointer = dynamic_cast<STRAIGHT64OpInfo*>(*opInfoTuple.first);
+                if (!opInfoPointer)
+                {
+                    THROW_RUNTIME_ERROR("OpInfo doesn't have STRAIGHT64OpInfo type");
+                }
+                *(m_opInfoArray[m_opInfoArrayIndex]) = *dynamic_cast<STRAIGHT64OpInfo*>(*opInfoTuple.first);
+                auto retOpInfo = reinterpret_cast<OpInfo**>(&m_opInfoArray[m_opInfoArrayIndex]);
+                m_opInfoArrayIndex = (m_opInfoArrayIndex + 1) % OPINFO_ARRAY_CAPACITY;
+                return std::make_pair(retOpInfo, 1);
             }
+
+        private:
+            static const int OPINFO_ARRAY_CAPACITY = 5000;
+            STRAIGHT64OpInfo* m_opInfoArray[OPINFO_ARRAY_CAPACITY];
+            int m_opInfoArrayIndex;
         };
 
     } // namespace STRAIGHT64Linux
