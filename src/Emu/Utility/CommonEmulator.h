@@ -47,6 +47,8 @@
 #include "Emu/Utility/OpEmulationState.h"
 #include "Emu/Utility/SkipOp.h"
 #include "Emu/Utility/GenericOperation.h"
+#include "Sim/Foundation/Hook/Hook.h"
+#include "Sim/Foundation/Hook/HookUtil.h"
 
 namespace Onikiri {
     class SystemIF;
@@ -95,6 +97,10 @@ namespace Onikiri {
             // MemIF の実装
             virtual void Read( MemAccess* access );
             virtual void Write( MemAccess* access );
+
+            // HookPoint
+            typedef std::pair<OpInfo**, int> GetOpHookParam;
+            static HookPoint<CommonEmulator<Traits>, GetOpHookParam> s_getOpHook;
 
         private:
             bool CreateProcesses( SystemIF* simSystem );
@@ -373,7 +379,11 @@ namespace Onikiri {
 
             SkipOp op(this);
             while (skipCount-- != 0 && pc.address != 0) {
-                std::pair<OpInfo**, int> ops_pair = GetOpBody(pc);
+                std::pair<OpInfo**, int> ops_pair;
+                HOOK_SECTION_PARAM(s_getOpHook, ops_pair)
+                {
+                    ops_pair = GetOpBody(pc);
+                }
                 OpInfo** opInfoArray = ops_pair.first;
                 int opCount = ops_pair.second;
 
