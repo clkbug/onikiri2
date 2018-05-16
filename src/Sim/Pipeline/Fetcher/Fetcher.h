@@ -195,6 +195,11 @@ namespace Onikiri
         // Prototype : void Method( HookParameter<Fetcher,BranchPredictionParam>* param )
         static HookPoint<Fetcher, BranchPredictionHookParam> s_branchPredictionHook;
 
+        // The hook point of 'GetOp()'
+        // Prototype : void Method( HookParameter<Fetcher, GetOpHookParam>* param)
+        typedef std::pair<OpInfo**, int> GetOpHookParam;
+        static HookPoint<Fetcher, GetOpHookParam> s_getOpHook;
+
     protected:
         typedef PipelineNodeBase BaseType;
 

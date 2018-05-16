@@ -70,6 +70,7 @@ namespace Onikiri
     HookPoint<Fetcher, Fetcher::SteeringHookParam> Fetcher::s_fetchSteeringHook;
     HookPoint<Fetcher, Fetcher::FetchDecisionHookParam> Fetcher::s_fetchDecisionHook;
     HookPoint<Fetcher, Fetcher::BranchPredictionHookParam> Fetcher::s_branchPredictionHook;
+    HookPoint<Fetcher, Fetcher::GetOpHookParam> Fetcher::s_getOpHook;
 };  // namespace Onikiri
 
 Fetcher::Fetcher() :
@@ -494,8 +495,10 @@ void Fetcher::Update()
             break;
         }
 
-        pair<OpInfo**, int> ops = m_emulator->GetOp(pc);
-
+        pair<OpInfo**, int> ops;
+        HOOK_SECTION_PARAM(s_getOpHook, ops) {
+            ops = m_emulator->GetOp(pc);
+        }
         OpInfo** opArray = ops.first;
         int numOp = ops.second;
 
