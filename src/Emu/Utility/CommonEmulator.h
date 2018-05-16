@@ -169,6 +169,9 @@ namespace Onikiri {
         };
 
         template <class Traits>
+        HookPoint<CommonEmulator<Traits>, typename CommonEmulator<Traits>::GetOpHookParam> CommonEmulator<Traits>::s_getOpHook;
+
+        template <class Traits>
         CommonEmulator<Traits>::CommonEmulator( SystemIF* simSystem )
             :   m_opInfoArrayPool(sizeof(OpInfo*)),
                 m_extraOpDecoder(0),
