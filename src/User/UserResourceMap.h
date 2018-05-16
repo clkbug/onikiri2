@@ -45,6 +45,7 @@
 #include "Samples/SampleHookModule.h"
 #include "Samples/SampleBPred.h"
 #include "Samples/SamplePrefetcher.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHTSystem.h"
 
 BEGIN_USER_RESOURCE_TYPE_MAP()
 
@@ -65,6 +66,8 @@ BEGIN_USER_RESOURCE_TYPE_MAP()
 #ifdef USE_SAMPLE_PREFETCHER
     RESOURCE_TYPE_ENTRY( SamplePrefetcher )
 #endif
+
+    RESOURCE_TYPE_ENTRY(STRAIGHT64Linux::STRAIGHTSystem)
 
 END_USER_RESOURCE_TYPE_MAP()
 

@@ -40,6 +40,7 @@
 #include "Samples/SampleHookModule.h"
 #include "Samples/SampleBPred.h"
 #include "Samples/SamplePrefetcher.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHTSystem.h"
 
 namespace Onikiri
 {
@@ -67,6 +68,7 @@ namespace Onikiri
 #ifdef USE_SAMPLE_PREFETCHER        // for 'SamplePrefetcher'
         defaultParams->push_back( g_samplePrefetcherParam );
 #endif
+        defaultParams->push_back(STRAIGHT64Linux::g_straightSystemModuleParam);
     }
 }
 

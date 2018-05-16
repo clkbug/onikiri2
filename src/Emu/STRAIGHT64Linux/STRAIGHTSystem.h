@@ -40,7 +40,7 @@
 
 namespace Onikiri
 {
-    namespace STRAIGHT
+    namespace STRAIGHT64Linux
     {
         class STRAIGHTSystem : public PhysicalResourceNode
         {
@@ -57,10 +57,10 @@ namespace Onikiri
 
             void Rename(std::pair<OpInfo**, int>* ops, u64* rp);
 
-            //void AfterEmulatorGetOp(STRAIGHTEmulator::GetOpHookParam* param);
-            //void OnFetch(Fetcher::FetchHookParam* param);
-            //void AfterFetcherGetOp(Fetcher::GetOpHookParam* param);
-            //void AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* param);
+            void AfterEmulatorGetOp(STRAIGHT64Linux::STRAIGHT64LinuxEmulator::GetOpHookParam* param);
+            void OnFetch(Fetcher::FetchHookParam* param);
+            void AfterFetcherGetOp(Fetcher::GetOpHookParam* param);
+            void AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* param);
             void BeforeFlush(OpIterator op);
 
             BEGIN_PARAM_MAP("")

@@ -29,19 +29,19 @@
 //
 
 #include <pch.h>
-#include "Emu/STRAIGHT64Linux/STRAIGHTSystem.h"
-#include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxEmulator.h"
 #include "Sim/Foundation/Hook/Hook.h"
 #include "Sim/Pipeline/Fetcher/Fetcher.h"
 #include "Sim/Pipeline/Renamer/Renamer.h"
 #include "Sim/Dumper/Dumper.h"
 #include "Sim/InorderList/InorderList.h"
 #include "Sim/System/ForwardEmulator.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHTSystem.h"
+#include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxEmulator.h"
 
 using namespace std;
 
 using namespace Onikiri;
-using namespace STRAIGHT;
+using namespace STRAIGHT64Linux;
 
 STRAIGHTSystem::STRAIGHTSystem() :
     m_emuRP(0),
@@ -51,7 +51,7 @@ STRAIGHTSystem::STRAIGHTSystem() :
 }
 
 STRAIGHTSystem::~STRAIGHTSystem()
-{    
+{
 }
 
 
@@ -69,18 +69,18 @@ void STRAIGHTSystem::Initialize(InitPhase phase)
         m_spTable.Resize(*m_core->GetOpArray());
         m_rpTable.Resize(*m_core->GetOpArray());
 
-        //STRAIGHTEmulator::s_getOpHook.Register(this, &STRAIGHTSystem::AfterEmulatorGetOp, 0, HookType::HOOK_AFTER);
-        //Fetcher::s_fetchHook.Register(this, &STRAIGHTSystem::OnFetch, 0, HookType::HOOK_AFTER);
-        //Fetcher::s_getOpHook.Register(this, &STRAIGHTSystem::AfterFetcherGetOp, 0, HookType::HOOK_AFTER);
-        //ForwardEmulator::s_getOpHook.Register(this, &STRAIGHTSystem::AfterForwardEmulatorGetOp, 0, HookType::HOOK_AFTER);
-        //InorderList::s_opFlushHook.Register(this, &STRAIGHTSystem::BeforeFlush, 0, HookType::HOOK_BEFORE);
+        STRAIGHT64Linux::STRAIGHT64LinuxEmulator::s_getOpHook.Register(this, &STRAIGHTSystem::AfterEmulatorGetOp, 0, HookType::HOOK_AFTER);
+        Fetcher::s_fetchHook.Register(this, &STRAIGHTSystem::OnFetch, 0, HookType::HOOK_AFTER);
+        Fetcher::s_getOpHook.Register(this, &STRAIGHTSystem::AfterFetcherGetOp, 0, HookType::HOOK_AFTER);
+        ForwardEmulator::s_getOpHook.Register(this, &STRAIGHTSystem::AfterForwardEmulatorGetOp, 0, HookType::HOOK_AFTER);
+        InorderList::s_opFlushHook.Register(this, &STRAIGHTSystem::BeforeFlush, 0, HookType::HOOK_BEFORE);
     }
-    
+
 }
 
 void STRAIGHTSystem::Finalize()
 {
-    ReleaseParam();    
+    ReleaseParam();
 }
 
 void STRAIGHTSystem::ChangeSimulationMode(SimulationMode mode)
@@ -95,7 +95,7 @@ void STRAIGHTSystem::ChangeSimulationMode(SimulationMode mode)
 void STRAIGHTSystem::Rename(std::pair<OpInfo**, int>* ops, u64* rp)
 {
     //auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(*(*ops).first);
-    //if(!opInfo)
+    //if (!opInfo)
     //{
     //    THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
     //}
@@ -110,98 +110,99 @@ void STRAIGHTSystem::Rename(std::pair<OpInfo**, int>* ops, u64* rp)
     //}
 }
 
-//void STRAIGHTSystem::AfterEmulatorGetOp(STRAIGHTEmulator::GetOpHookParam* param)
-//{
-//    Rename(param, &m_emuRP);
-//
-//    auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(*(param->first));
-//    if (!opInfo)
-//    {
-//        THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
-//    }
-//
-//    // Process RPINC
-//    if (opInfo->GetOpCode() == OPCODE_RPINC)
-//    {
-//        m_emuRP = STRAIGHTISAInfo::CalcRP(m_emuRP, opInfo->GetImmValue() + 1);
-//    }
-//    else
-//    {
-//        m_emuRP = STRAIGHTISAInfo::CalcRP(m_emuRP, 1);
-//    }
-//
-//    // Process SPADDi
-//    if (opInfo->GetOpCode() == OPCODE_SPADD_IMM)
-//    {
-//        opInfo->SetSP(m_emuSP);
-//        m_emuSP += opInfo->GetImmValue();
-//    }
-//}
+void STRAIGHTSystem::AfterEmulatorGetOp(STRAIGHT64LinuxEmulator::GetOpHookParam* param)
+{
+    //Rename(param, &m_emuRP);
 
-//void STRAIGHTSystem::AfterFetcherGetOp(Fetcher::GetOpHookParam* param)
-//{
-//    Rename(param, &m_rp);
-//}
-//void STRAIGHTSystem::AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* param)
-//{
-//    Rename(param, &m_emuRP);
-//
-//    auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(*(*param).first);
-//    if(!opInfo)
-//    {
-//        THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
-//    }
-//
-//    // Process RPINC
-//    if (opInfo->GetOpCode() == OPCODE_RPINC)
-//    {
-//        m_emuRP = STRAIGHTISAInfo::CalcRP(m_emuRP, opInfo->GetImmValue() + 1);
-//    }
-//    else
-//    {
-//        m_emuRP = STRAIGHTISAInfo::CalcRP(m_emuRP, 1);
-//    }
-//    
-//    // Process SPADDi
-//    if (opInfo->GetOpCode() == OPCODE_SPADD_IMM)
-//    {
-//        opInfo->SetSP(m_emuSP);
-//        m_emuSP += opInfo->GetImmValue();
-//    }
-//    
-//}
-//
-//void STRAIGHTSystem::OnFetch(Fetcher::FetchHookParam* param)
-//{
-//    auto op = param->op;
-//
-//    auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(op->GetOpInfo());
-//    if (!opInfo)
-//    {
-//        THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
-//    }
-//
-//    ASSERT( opInfo->GetDstOperand(0) == static_cast<int>(m_rp) );
-//    m_rpTable[op] = m_rp;
-//    m_spTable[op] = m_sp;
-//
-//    // Process RPINC
-//    if (opInfo->GetOpCode() == OPCODE_RPINC)
-//    {
-//        m_rp = STRAIGHTISAInfo::CalcRP(m_rp, opInfo->GetImmValue() + 1);
-//    }
-//    else
-//    {
-//        m_rp = STRAIGHTISAInfo::CalcRP(m_rp, 1);
-//    }
-//
-//    // Process SPADDi
-//    if (opInfo->GetOpCode() == OPCODE_SPADD_IMM)
-//    {
-//        opInfo->SetSP(m_sp);
-//        m_sp += opInfo->GetImmValue();
-//    }
-//}
+    //auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(*(param->first));
+    //if (!opInfo)
+    //{
+    //    THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
+    //}
+
+    //// Process RPINC
+    //if (opInfo->GetOpCode() == OPCODE_RPINC)
+    //{
+    //    m_emuRP = STRAIGHTISAInfo::CalcRP(m_emuRP, opInfo->GetImmValue() + 1);
+    //}
+    //else
+    //{
+    //    m_emuRP = STRAIGHTISAInfo::CalcRP(m_emuRP, 1);
+    //}
+
+    //// Process SPADDi
+    //if (opInfo->GetOpCode() == OPCODE_SPADD_IMM)
+    //{
+    //    opInfo->SetSP(m_emuSP);
+    //    m_emuSP += opInfo->GetImmValue();
+    //}
+}
+
+void STRAIGHTSystem::AfterFetcherGetOp(Fetcher::GetOpHookParam* param)
+{
+    Rename(param, &m_rp);
+}
+
+void STRAIGHTSystem::AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* param)
+{
+    //Rename(param, &m_emuRP);
+
+    //auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(*(*param).first);
+    //if (!opInfo)
+    //{
+    //    THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
+    //}
+
+    //// Process RPINC
+    //if (opInfo->GetOpCode() == OPCODE_RPINC)
+    //{
+    //    m_emuRP = STRAIGHTISAInfo::CalcRP(m_emuRP, opInfo->GetImmValue() + 1);
+    //}
+    //else
+    //{
+    //    m_emuRP = STRAIGHTISAInfo::CalcRP(m_emuRP, 1);
+    //}
+
+    //// Process SPADDi
+    //if (opInfo->GetOpCode() == OPCODE_SPADD_IMM)
+    //{
+    //    opInfo->SetSP(m_emuSP);
+    //    m_emuSP += opInfo->GetImmValue();
+    //}
+
+}
+
+void STRAIGHTSystem::OnFetch(Fetcher::FetchHookParam* param)
+{
+    //auto op = param->op;
+
+    //auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(op->GetOpInfo());
+    //if (!opInfo)
+    //{
+    //    THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
+    //}
+
+    //ASSERT(opInfo->GetDstOperand(0) == static_cast<int>(m_rp));
+    //m_rpTable[op] = m_rp;
+    //m_spTable[op] = m_sp;
+
+    //// Process RPINC
+    //if (opInfo->GetOpCode() == OPCODE_RPINC)
+    //{
+    //    m_rp = STRAIGHTISAInfo::CalcRP(m_rp, opInfo->GetImmValue() + 1);
+    //}
+    //else
+    //{
+    //    m_rp = STRAIGHTISAInfo::CalcRP(m_rp, 1);
+    //}
+
+    //// Process SPADDi
+    //if (opInfo->GetOpCode() == OPCODE_SPADD_IMM)
+    //{
+    //    opInfo->SetSP(m_sp);
+    //    m_sp += opInfo->GetImmValue();
+    //}
+}
 
 void STRAIGHTSystem::BeforeFlush(OpIterator op)
 {
