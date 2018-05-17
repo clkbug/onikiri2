@@ -50,6 +50,7 @@ namespace Onikiri {
             static const int ZeroRegIndex = 1024;
             static const int StackPointerRegIndex = 1025;
             static const int RegisterCount = 1024;
+            static int CalcRP(u64 RP, u64 inc) { return (RP + inc + MaxLogRP + 1) % (MaxLogRP + 1); }
 
             static const int MAX_MEMORY_ACCESS_WIDTH = 8;
 

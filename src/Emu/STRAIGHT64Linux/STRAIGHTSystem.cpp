@@ -69,7 +69,7 @@ void STRAIGHTSystem::Initialize(InitPhase phase)
         m_spTable.Resize(*m_core->GetOpArray());
         m_rpTable.Resize(*m_core->GetOpArray());
 
-        STRAIGHT64Linux::STRAIGHT64LinuxEmulator::s_getOpHook.Register(this, &STRAIGHTSystem::AfterEmulatorGetOp, 0, HookType::HOOK_AFTER);
+        STRAIGHT64LinuxEmulator::s_getOpHook.Register(this, &STRAIGHTSystem::AfterEmulatorGetOp, 0, HookType::HOOK_AFTER);
         Fetcher::s_fetchHook.Register(this, &STRAIGHTSystem::OnFetch, 0, HookType::HOOK_AFTER);
         Fetcher::s_getOpHook.Register(this, &STRAIGHTSystem::AfterFetcherGetOp, 0, HookType::HOOK_AFTER);
         ForwardEmulator::s_getOpHook.Register(this, &STRAIGHTSystem::AfterForwardEmulatorGetOp, 0, HookType::HOOK_AFTER);
@@ -94,31 +94,30 @@ void STRAIGHTSystem::ChangeSimulationMode(SimulationMode mode)
 
 void STRAIGHTSystem::Rename(std::pair<OpInfo**, int>* ops, u64* rp)
 {
-    //auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(*(*ops).first);
-    //if (!opInfo)
-    //{
-    //    THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
-    //}
-
-    //opInfo->SetDstOperand(0, static_cast<int>(*rp));
-    //for (int i = 0; i < opInfo->GetSrcNum(); i++)
-    //{
-    //    auto d = opInfo->GetSrcOperand(i);
-    //    if (d == STRAIGHTISAInfo::ZEROREG_INDEX) { continue; }
-    //    auto src = STRAIGHTISAInfo::CalcRP(*rp, -d);
-    //    opInfo->SetSrcOperand(i, static_cast<int>(src));
-    //}
+    auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>(*(*ops).first);
+    if (!opInfo)
+    {
+        THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
+    }
+    opInfo->SetDstReg(0, static_cast<int>(*rp));
+    for (int i = 0; i < opInfo->GetSrcNum(); i++)
+    {
+        auto d = opInfo->GetSrcOperand(i);
+        if (d == STRAIGHT64Info::ZeroRegIndex) { continue; }
+        auto src = STRAIGHT64Info::CalcRP(*rp, -d);
+        opInfo->SetSrcReg(i, static_cast<int>(src));
+    }
 }
 
 void STRAIGHTSystem::AfterEmulatorGetOp(STRAIGHT64LinuxEmulator::GetOpHookParam* param)
 {
-    //Rename(param, &m_emuRP);
+    Rename(param, &m_emuRP);
 
-    //auto opInfo = dynamic_cast<STRAIGHTOpInfo*>(*(param->first));
-    //if (!opInfo)
-    //{
-    //    THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
-    //}
+    auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>(*(param->first));
+    if (!opInfo)
+    {
+        THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
+    }
 
     //// Process RPINC
     //if (opInfo->GetOpCode() == OPCODE_RPINC)
