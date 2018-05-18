@@ -103,5 +103,5 @@ int STRAIGHT64Info::GetMaxMemoryAccessByteSize()
 
 bool STRAIGHT64Info::IsLittleEndian()
 {
-    return false;
+    return true;
 }

@@ -58,7 +58,7 @@ namespace {
 
     // 各命令形式に対するオペコードを得るためのマスク (0のビットが引数)
     const u32 MASK_EXACT = 0xffffffff;  // 全bitが一致
-    const u32 MASK_OPCODE = 0x000000cf; // 最上位6ビットがOPCODE
+    const u32 MASK_OPCODE = 0xfc000000; // 最上位6ビットがOPCODE
 }
 
 namespace {
@@ -82,6 +82,7 @@ namespace {
 
 #define STRAIGHT64_DSTOP(n) STRAIGHT64DstOperand<n>
 #define STRAIGHT64_SRCOP(n) STRAIGHT64SrcOperand<n>
+#define OPCODE(n) ((n)<<26)
 
 #define D0 STRAIGHT64_DSTOP(0)
 #define D1 STRAIGHT64_DSTOP(1)
@@ -93,17 +94,17 @@ namespace {
 // 投機的にフェッチされたときにはエラーにせず，実行されたときにエラーにする
 // syscallにすることにより，直前までの命令が完了してから実行される (実行は投機的でない)
 STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefUnknown = 
-    {"unknown", MASK_EXACT, 0,  1, {{OpClassCode::UNDEF,    {-1, -1}, {I0, -1, -1}, STRAIGHT64Converter::STRAIGHTUnknownOperation}}};
+    {"unknown", MASK_EXACT, 0,  1, {{OpClassCode::UNDEF,    {-1, -1}, {I0, -1, -1}, STRAIGHTUnknownOperation}}};
 
 
 // branchは，OpInfo 列の最後じゃないとだめ
 STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
 {
-    //{Name,    Mask,       Opcode,         nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    {"ADD",     MASK_OPCODE, 10,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntAdd<u32, S0, S1> >} } },
-    {"ADDi",    MASK_OPCODE, 11,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntAdd<u32, S0, S1> > } } },
-    {"SUB",     MASK_OPCODE, 12,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntSub<u32, S0, S1> >} } },
-    {"SUBi",    MASK_OPCODE, 13,            1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntSub<u32, S0, S1> > } } },
+    //{Name,    Mask,        Opcode,        nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
+    {"ADD",     MASK_OPCODE, OPCODE( 9),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntAdd<u32, S0, S1> >} } },
+    {"ADDi",    MASK_OPCODE, OPCODE(10),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntAdd<u32, S0, S1> > } } },
+    {"SUB",     MASK_OPCODE, OPCODE(11),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntSub<u32, S0, S1> >} } },
+    {"SUBi",    MASK_OPCODE, OPCODE(12),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntSub<u32, S0, S1> > } } },
 };
 
 //
@@ -169,7 +170,7 @@ void STRAIGHT64Converter::STRAIGHTUnknownOperation(OpEmulationState* opState)
     decoder.Decode( codeWord, &decoded);
 
     stringstream ss;
-    u32 opcode = codeWord & 0xfc000000;
+    u32 opcode = (codeWord & 0xfc000000) >> 26;
     ss << "unknown instruction : " << hex << setw(8) << codeWord << endl;
     ss << "\topcode : " << hex << opcode << endl;
     ss << "\timm[1] : " << hex << decoded.Imm[1] << endl;
