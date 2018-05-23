@@ -69,13 +69,15 @@ namespace {
     // レジスタ・テンプレートに使用する番号
     // 本物のレジスタ番号を使ってはならない
     const int RegTemplateBegin = -20;    // 命令中のレジスタ番号に変換 (数値に意味はない．本物のレジスタ番号と重ならずかつ一意であればよい)
-    const int RegTemplateEnd = RegTemplateBegin+4-1;
+    const int RegTemplateEnd = RegTemplateBegin + 4 - 1;
     const int ImmTemplateBegin = -30;    // 即値に変換
-    const int ImmTemplateEnd = ImmTemplateBegin+2-1;
+    const int ImmTemplateEnd = ImmTemplateBegin + 2 - 1;
 
-    const int R0 = RegTemplateBegin+0;
-    const int R1 = RegTemplateBegin+1;
-    const int R2 = RegTemplateBegin+2;
+    const int R0 = RegTemplateBegin + 0;
+    const int R1 = RegTemplateBegin + 1;
+    const int R2 = RegTemplateBegin + 2;
+    const int R3 = RegTemplateBegin + 3;
+    const int R4 = RegTemplateBegin + 4;
 
     const int I0 = ImmTemplateBegin+0;
 }
@@ -101,6 +103,10 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefUnknown =
 STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
 {
     //{Name,    Mask,        Opcode,        nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
+    { "SYSCALL",MASK_OPCODE, OPCODE( 1),   2,{
+        { OpClassCode::syscall,        { R0, -1 }, { I0, -1, -1 }, STRAIGHT64SyscallSetArg },
+        { OpClassCode::syscall_branch, { R0, -1 }, { R0, -1, -1 }, STRAIGHT64SyscallCore },
+    } },
     {"ADD",     MASK_OPCODE, OPCODE( 9),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntAdd<u32, S0, S1> >} } },
     {"ADDi",    MASK_OPCODE, OPCODE(10),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntAdd<u32, S0, S1> > } } },
     {"SUB",     MASK_OPCODE, OPCODE(11),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntSub<u32, S0, S1> >} } },

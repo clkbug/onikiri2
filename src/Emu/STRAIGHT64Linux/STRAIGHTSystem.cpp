@@ -94,17 +94,20 @@ void STRAIGHTSystem::ChangeSimulationMode(SimulationMode mode)
 
 void STRAIGHTSystem::Rename(std::pair<OpInfo**, int>* ops, u64* rp)
 {
-    auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>(*(*ops).first);
-    if (!opInfo)
+    for (int i = 0; i < ops->second; i++)
     {
-        THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
-    }
-    opInfo->SetDstReg(0, static_cast<int>(*rp));
-    for (int i = 0; i < opInfo->GetSrcNum(); i++)
-    {
-        auto d = opInfo->GetSrcOperand(i);
-        auto src = STRAIGHT64Info::CalcRP(*rp, -d);
-        opInfo->SetSrcReg(i, static_cast<int>(src));
+        auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>((*ops).first[i]);
+        if (!opInfo)
+        {
+            THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
+        }
+        opInfo->SetDstReg(0, static_cast<int>(*rp));
+        for (int j = 0; j < opInfo->GetSrcNum(); j++)
+        {
+            auto d = opInfo->GetSrcOperand(j);
+            auto src = STRAIGHT64Info::CalcRP(*rp, -d);
+            opInfo->SetSrcReg(j, static_cast<int>(src));
+        }
     }
 }
 
@@ -182,7 +185,6 @@ void STRAIGHTSystem::OnFetch(Fetcher::FetchHookParam* param)
         THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
     }
 
-    ASSERT(opInfo->GetDstOperand(0) == static_cast<int>(m_rp));
     m_rpTable[op] = m_rp;
     m_spTable[op] = m_sp;
 

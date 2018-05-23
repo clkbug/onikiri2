@@ -286,5 +286,5 @@ void STRAIGHT64SyscallCore(EmulatorUtility::OpEmulationState* opState)
 } // namespace STRAIGHT64Linux {
 } // namespace Onikiri
 
-#endif // #ifndef EMU_ALPHA_LINUX_ALPHALINUX_ALPHAOPERATION_H
+#endif // #ifndef EMU_STRAIGHT64LINUX_STRAIGHT64_OPERATION_H
 

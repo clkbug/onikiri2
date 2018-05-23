@@ -54,18 +54,20 @@ namespace Onikiri
 
             virtual std::pair<OpInfo**, int> GetOp(PC pc)
             {
-                std::cout << "GetOp ... PC: " << std::hex << pc.address << std::endl;
                 auto opInfoTuple = EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits>::GetOp(pc);
-                assert(opInfoTuple.second == 1);
-                auto opInfoPointer = dynamic_cast<STRAIGHT64OpInfo*>(*opInfoTuple.first);
-                if (!opInfoPointer)
+                auto opInfoArrayIndex = m_opInfoArrayIndex;
+                for (int i = 0; i < opInfoTuple.second; i++)
                 {
-                    THROW_RUNTIME_ERROR("OpInfo doesn't have STRAIGHT64OpInfo type");
+                    auto opInfoPointer = dynamic_cast<STRAIGHT64OpInfo*>(*opInfoTuple.first);
+                    if (!opInfoPointer)
+                    {
+                        THROW_RUNTIME_ERROR("OpInfo doesn't have STRAIGHT64OpInfo type");
+                    }
+                    *(m_opInfoArray[m_opInfoArrayIndex]) = *dynamic_cast<STRAIGHT64OpInfo*>(opInfoTuple.first[i]);
+                    m_opInfoArrayIndex = (m_opInfoArrayIndex + 1) % OPINFO_ARRAY_CAPACITY;
                 }
-                *(m_opInfoArray[m_opInfoArrayIndex]) = *dynamic_cast<STRAIGHT64OpInfo*>(*opInfoTuple.first);
-                auto retOpInfo = reinterpret_cast<OpInfo**>(&m_opInfoArray[m_opInfoArrayIndex]);
-                m_opInfoArrayIndex = (m_opInfoArrayIndex + 1) % OPINFO_ARRAY_CAPACITY;
-                return std::make_pair(retOpInfo, 1);
+                assert(opInfoTuple.second <= m_opInfoArrayIndex);
+                return std::make_pair(reinterpret_cast<OpInfo**>(&m_opInfoArray[opInfoArrayIndex]), opInfoTuple.second);
             }
 
         private:
