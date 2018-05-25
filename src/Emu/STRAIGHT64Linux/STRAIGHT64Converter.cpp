@@ -84,7 +84,7 @@ namespace {
 
 #define STRAIGHT64_DSTOP(n) STRAIGHT64DstOperand<n>
 #define STRAIGHT64_SRCOP(n) STRAIGHT64SrcOperand<n>
-#define OPCODE(n) ((n)<<26)
+#define OPCODE(n) ((unsigned)(n)<<26)
 
 #define D0 STRAIGHT64_DSTOP(0)
 #define D1 STRAIGHT64_DSTOP(1)
@@ -102,15 +102,56 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefUnknown =
 // branchは，OpInfo 列の最後じゃないとだめ
 STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
 {
-    //{Name,    Mask,        Opcode,        nOp,{ OpClassCode,          Dst[],      Src[],              OpInfoType::EmulationFunc}[]}
-    { "SYSCALL",MASK_OPCODE, OPCODE( 1),   2,{
+    //{Name,    Mask,        Opcode,        nOp, { OpClassCode,          Dst[],      Src[],          OpInfoType::EmulationFunc}[]}
+    { "NOP",    MASK_EXACT,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
+    { "SYSCALL",MASK_OPCODE, OPCODE(1),     2,   {
         { OpClassCode::syscall,        { R0, -1 }, { I0, -1, -1 }, STRAIGHT64SyscallSetArg },
         { OpClassCode::syscall_branch, { R0, -1 }, { R0, -1, -1 }, STRAIGHT64SyscallCore },
     } },
-    {"ADD",     MASK_OPCODE, OPCODE( 9),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntAdd<u32, S0, S1> >} } },
-    {"ADDi",    MASK_OPCODE, OPCODE(10),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntAdd<u32, S0, S1> > } } },
-    {"SUB",     MASK_OPCODE, OPCODE(11),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, R2, -1},       Set<D0, IntSub<u32, S0, S1> >} } },
-    {"SUBi",    MASK_OPCODE, OPCODE(12),    1,  { {OpClassCode::iALU,   {R0, -1},   {R1, I0, -1},       Set<D0, IntSub<u32, S0, S1> > } } },
+    { "ADD",    MASK_OPCODE, OPCODE(9),     1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntAdd<u64, S0, S1> > } } },
+    { "ADDi",   MASK_OPCODE, OPCODE(10),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, IntAdd<u64, S0, S1> > } } },
+    { "SUB",    MASK_OPCODE, OPCODE(11),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntSub<u64, S0, S1> > } } },
+    { "SUBi",   MASK_OPCODE, OPCODE(12),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, IntSub<u64, S0, S1> > } } },
+    { "MUL",    MASK_OPCODE, OPCODE(13),    1,  { { OpClassCode::iMUL,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntMul<u64, S0, S1> > } } },
+    { "MULi",   MASK_OPCODE, OPCODE(14),    1,  { { OpClassCode::iMUL,   { R0, -1 }, { R1, I0, -1 }, Set<D0, IntMul<u64, S0, S1> > } } },
+    { "DIV",    MASK_OPCODE, OPCODE(15),    1,  { { OpClassCode::iDIV,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntDiv<s64, S0, S1> > } } },
+    { "DIVi",   MASK_OPCODE, OPCODE(16),    1,  { { OpClassCode::iDIV,   { R0, -1 }, { R1, I0, -1 }, Set<D0, IntDiv<s64, S0, S1> > } } },
+    { "DIVU",   MASK_OPCODE, OPCODE(17),    1,  { { OpClassCode::iDIV,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntDiv<u64, S0, S1> > } } },
+    { "DIVUi",  MASK_OPCODE, OPCODE(18),    1,  { { OpClassCode::iDIV,   { R0, -1 }, { R1, I0, -1 }, Set<D0, IntDiv<u64, S0, S1> > } } },
+    { "MOD",    MASK_OPCODE, OPCODE(19),    1,  { { OpClassCode::iDIV,   { R0, -1 }, { R1, R2, -1 }, Set<D0, STRAIGHT64IntMod<s64, S0, S1> > } } },
+    { "MODi",   MASK_OPCODE, OPCODE(20),    1,  { { OpClassCode::iDIV,   { R0, -1 }, { R1, I0, -1 }, Set<D0, STRAIGHT64IntMod<s64, S0, S1> > } } },
+    { "MODU",   MASK_OPCODE, OPCODE(21),    1,  { { OpClassCode::iDIV,   { R0, -1 }, { R1, R2, -1 }, Set<D0, STRAIGHT64IntMod<u64, S0, S1> > } } },
+    { "MODUi",  MASK_OPCODE, OPCODE(22),    1,  { { OpClassCode::iDIV,   { R0, -1 }, { R1, I0, -1 }, Set<D0, STRAIGHT64IntMod<u64, S0, S1> > } } },
+    { "SLT",    MASK_OPCODE, OPCODE(23),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessSigned<u64> > > } } },
+    { "SLTi",   MASK_OPCODE, OPCODE(24),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessSigned<u64> > > } } },
+    { "SLTU",   MASK_OPCODE, OPCODE(25),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessUnsigned<u64> > > } } },
+    { "SLTUi",  MASK_OPCODE, OPCODE(26),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessUnsigned<u64> > > } } },
+    // Float: not implemented yet
+    { "SHL",    MASK_OPCODE, OPCODE(34),    1,  { { OpClassCode::iSFT,   { R0, -1 }, { R1, R2, -1 }, Set<D0, LShiftL<u64, S0, S1, 0x3f> > } } },
+    { "SHLi",   MASK_OPCODE, OPCODE(35),    1,  { { OpClassCode::iSFT,   { R0, -1 }, { R1, I0, -1 }, Set<D0, LShiftL<u64, S0, S1, 0x3f> > } } },
+    { "SHR",    MASK_OPCODE, OPCODE(36),    1,  { { OpClassCode::iSFT,   { R0, -1 }, { R1, R2, -1 }, Set<D0, LShiftR<u64, S0, S1, 0x3f> > } } },
+    { "SHRi",   MASK_OPCODE, OPCODE(37),    1,  { { OpClassCode::iSFT,   { R0, -1 }, { R1, I0, -1 }, Set<D0, LShiftR<u64, S0, S1, 0x3f> > } } },
+    { "SHRA",   MASK_OPCODE, OPCODE(38),    1,  { { OpClassCode::iSFT,   { R0, -1 }, { R1, R2, -1 }, Set<D0, AShiftR<u64, S0, S1, 0x3f> > } } },
+    { "SHRAi",  MASK_OPCODE, OPCODE(39),    1,  { { OpClassCode::iSFT,   { R0, -1 }, { R1, I0, -1 }, Set<D0, AShiftR<u64, S0, S1, 0x3f> > } } },
+    { "AND",    MASK_OPCODE, OPCODE(40),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, BitAnd<u64, S0, S1> > } } },
+    { "ANDi",   MASK_OPCODE, OPCODE(41),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, BitAnd<u64, S0, S1> > } } },
+    { "OR",     MASK_OPCODE, OPCODE(42),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, BitOr<u64, S0, S1> > } } },
+    { "ORi",    MASK_OPCODE, OPCODE(43),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, BitOr<u64, S0, S1> > } } },
+    { "XOR",    MASK_OPCODE, OPCODE(44),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, BitXor<u64, S0, S1> > } } },
+    { "XORi",   MASK_OPCODE, OPCODE(45),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, BitXor<u64, S0, S1> > } } },
+    { "LUi",    MASK_OPCODE, OPCODE(46),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, STRAIGHT64Lui<S0> > } } },
+    { "SPADDi", MASK_OPCODE, OPCODE(47),    1,  { { OpClassCode::iMOV,   { R0, -1 }, { I0, -1, -1 }, Set<D0, STRAIGHT64Copy<S0> > } } }, // iMOV扱いだがフロントエンドで即値を書き換える
+    { "RPINC",  MASK_OPCODE, OPCODE(48),    1,  { { OpClassCode::iNOP,   { -1, -1 }, { I0, -1, -1 }, NoOperation } } },                  // フロントエンドで処理するのでNOP扱い
+    { "RMOV",   MASK_OPCODE, OPCODE(49),    1,  { { OpClassCode::iMOV,   { R0, -1 }, { I0, -1, -1 }, Set<D0, STRAIGHT64Copy<S0> > } } },
+    { "LD",     MASK_OPCODE, OPCODE(50),    1,  { { OpClassCode::iLD,    { R0, -1 }, { R1, I0, -1 }, Set<D0, Load<u64, STRAIGHT64Addr<S0, S1> > > } } },
+    { "LDH",    MASK_OPCODE, OPCODE(51),    1,  { { OpClassCode::iLD,    { R0, -1 }, { R1, I0, -1 }, Set<D0, Load<s32, STRAIGHT64Addr<S0, S1> > > } } },
+    { "LDHU",   MASK_OPCODE, OPCODE(52),    1,  { { OpClassCode::iLD,    { R0, -1 }, { R1, I0, -1 }, Set<D0, Load<u32, STRAIGHT64Addr<S0, S1> > > } } },
+    { "LDB",    MASK_OPCODE, OPCODE(53),    1,  { { OpClassCode::iLD,    { R0, -1 }, { R1, I0, -1 }, Set<D0, Load<s8,  STRAIGHT64Addr<S0, S1> > > } } },
+    { "LDBU",   MASK_OPCODE, OPCODE(54),    1,  { { OpClassCode::iLD,    { R0, -1 }, { R1, I0, -1 }, Set<D0, Load<u8,  STRAIGHT64Addr<S0, S1> > > } } },
+    { "ST",     MASK_OPCODE, OPCODE(55),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<u64, S2, STRAIGHT64Addr<S0, S1> > > } } },
+    { "STH",    MASK_OPCODE, OPCODE(56),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<s32, S2, STRAIGHT64Addr<S0, S1> > > } } },
+    { "STB",    MASK_OPCODE, OPCODE(57),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<s8,  S2, STRAIGHT64Addr<S0, S1> > > } } }
+    
 };
 
 //

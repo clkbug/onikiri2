@@ -46,7 +46,7 @@ namespace Operation {
 using namespace EmulatorUtility;
 using namespace EmulatorUtility::Operation;
 
-typedef u32 STRAIGHT64RegisterType;
+typedef u64 STRAIGHT64RegisterType;
 
 static const STRAIGHT64RegisterType REG_VALUE_TRUE = 1;
 static const STRAIGHT64RegisterType REG_VALUE_FALSE = 0;
@@ -101,13 +101,41 @@ inline u32 STRAIGHT64CurPC(OpEmulationState* opState)
 }
 
 
-// Set PC
-template<typename TSrc1>
-struct STRAIGHT64Auipc : public std::unary_function<OpEmulationState, RegisterType>
+// Modulo
+template <typename Type, typename TSrc1, typename TSrc2>
+struct STRAIGHT64IntMod : public std::unary_function<OpEmulationState*, Type>
 {
-    STRAIGHT64RegisterType operator()(OpEmulationState* opState) const
+    Type operator()(OpEmulationState* opState)
     {
-        return (TSrc1()(opState) << 12) + STRAIGHT64CurPC(opState);
+        Type src2 = static_cast<Type>(TSrc2()(opState));
+        if (src2 == 0)
+        {
+            u64 addr = opState->GetOpState()->GetPC().address;
+            RUNTIME_WARNING(
+                "Division by zero occurred and returned 0 at PC: %08x%08x",
+                (u32)(addr >> 32),
+                (u32)(addr & 0xffffffff)
+            );
+            return 0;
+        }
+        return static_cast<Type>(TSrc1()(opState)) % static_cast<Type>(TSrc2()(opState));
+    }
+};
+
+// compare
+template <typename TSrc1, typename TSrc2, typename Comp>
+struct STRAIGHT64Compare : public std::unary_function<EmulatorUtility::OpEmulationState*, STRAIGHT64RegisterType>
+{
+    STRAIGHT64RegisterType operator()(EmulatorUtility::OpEmulationState* opState)
+    {
+        if (Comp()(TSrc1()(opState), TSrc2()(opState)))
+        {
+            return static_cast<STRAIGHT64RegisterType>(REG_VALUE_TRUE);
+        }
+        else
+        {
+            return static_cast<STRAIGHT64RegisterType>(REG_VALUE_FALSE);
+        }
     }
 };
 
@@ -117,68 +145,17 @@ struct STRAIGHT64Lui : public std::unary_function<OpEmulationState, RegisterType
 {
     STRAIGHT64RegisterType operator()(OpEmulationState* opState) const
     {
-        return TSrc1()(opState) << 12;
+        return TSrc1()(opState) << 16;
     }
 };
 
-
-// compare
-template <typename TSrc1, typename TSrc2, typename Comp>
-struct STRAIGHT64Compare : public std::unary_function<EmulatorUtility::OpEmulationState*, STRAIGHT64RegisterType>
+template<typename TSrc1>
+struct STRAIGHT64Copy : public std::unary_function<OpEmulationState*, RegisterType>
 {
-    STRAIGHT64RegisterType operator()(EmulatorUtility::OpEmulationState* opState)
-    {
-        if (Comp()(TSrc1()(opState), TSrc2()(opState))) {
-            return (STRAIGHT64RegisterType)REG_VALUE_TRUE;
-        }
-        else {
-            return (STRAIGHT64RegisterType)REG_VALUE_FALSE;
-        }
+    STRAIGHT64RegisterType operator()(OpEmulationState* opState) const{
+        return TSrc1()(opState);
     }
 };
-
-// Branch
-template <typename TSrcTarget, typename TSrcDisp>
-inline void STRAIGHT64BranchAbsUncond(OpEmulationState* opState)
-{
-    u32 target = TSrcTarget()(opState) + cast_to_signed(TSrcDisp()(opState));
-    STRAIGHT64DoBranch(opState, target);
-}
-
-template <typename TSrcDisp>
-inline void STRAIGHT64BranchRelUncond(OpEmulationState* opState)
-{
-    u32 target = STRAIGHT64CurPC(opState) + cast_to_signed(TSrcDisp()(opState));
-    STRAIGHT64DoBranch(opState, target);
-}
-
-template <typename TSrcDisp, typename TCond>
-inline void STRAIGHT64BranchRelCond(OpEmulationState* opState)
-{
-    if (TCond()(opState)) {
-        STRAIGHT64BranchRelUncond<TSrcDisp>(opState);
-    }
-    else {
-        opState->SetTakenPC(STRAIGHT64NextPC(opState));
-    }
-}
-
-
-template <typename TDest, typename TSrcDisp>
-inline void STRAIGHT64CallRelUncond(OpEmulationState* opState)
-{
-    STRAIGHT64RegisterType ret = static_cast<STRAIGHT64RegisterType>(STRAIGHT64NextPC(opState));
-    STRAIGHT64BranchRelUncond<TSrcDisp>(opState);
-    TDest::SetOperand(opState, ret);
-}
-
-template <typename TDest, typename TSrcTarget, typename TSrcDisp>
-inline void STRAIGHT64CallAbsUncond(OpEmulationState* opState)
-{
-    STRAIGHT64RegisterType ret = static_cast<STRAIGHT64RegisterType>(STRAIGHT64NextPC(opState));
-    STRAIGHT64BranchAbsUncond<TSrcTarget, TSrcDisp>(opState);
-    TDest::SetOperand(opState, ret);
-}
 
 //
 // Load/Store
@@ -192,68 +169,13 @@ struct STRAIGHT64Addr : public std::unary_function<EmulatorUtility::OpEmulationS
     }
 };
 
-//
-// Div/Rem
-//
-template <typename TSrc1, typename TSrc2>
-struct STRAIGHT64IntDiv : public std::unary_function<OpEmulationState*, u32>
+template <typename Type, typename TValue, typename TAddr>
+struct STRAIGHT64Store : public std::unary_function<EmulatorUtility::OpEmulationState, STRAIGHT64RegisterType>
 {
-    u32 operator()(OpEmulationState* opState)
+    STRAIGHT64RegisterType operator()(EmulatorUtility::OpEmulationState* opState) const
     {
-        s32 src1 = static_cast<s32>(TSrc1()(opState));
-        s32 src2 = static_cast<s32>(TSrc2()(opState));
-        if (src2 == 0){
-            return static_cast<u32>(-1);
-        }
-        if (src1 < -0x7fffffff && src2 == -1) { // overflow
-            return src1;
-        }
-        return static_cast<u32>(src1 / src2);
-    }
-};
-
-template <typename TSrc1, typename TSrc2>
-struct STRAIGHT64IntRem : public std::unary_function<OpEmulationState*, u32>
-{
-    u32 operator()(OpEmulationState* opState)
-    {
-        s32 src1 = static_cast<s32>(TSrc1()(opState));
-        s32 src2 = static_cast<s32>(TSrc2()(opState));
-        if (src2 == 0){
-            return src1;
-        }
-        if (src1 < -0x7fffffff && src2 == -1) { // overflow
-            return 0;
-        }
-        return src1 % src2;
-    }
-};
-
-template <typename TSrc1, typename TSrc2>
-struct STRAIGHT64IntDivu : public std::unary_function<OpEmulationState*, u32>
-{
-    u32 operator()(OpEmulationState* opState)
-    {
-        u32 src1 = static_cast<u32>(TSrc1()(opState));
-        u32 src2 = static_cast<u32>(TSrc2()(opState));
-        if (src2 == 0){
-            return static_cast<u32>(-1);
-        }
-        return src1 / src2;
-    }
-};
-
-template <typename TSrc1, typename TSrc2>
-struct STRAIGHT64IntRemu : public std::unary_function<OpEmulationState*, u32>
-{
-    u32 operator()(OpEmulationState* opState)
-    {
-        u32 src1 = static_cast<u32>(TSrc1()(opState));
-        u32 src2 = static_cast<u32>(TSrc2()(opState));
-        if (src2 == 0){
-            return src1;
-        }
-        return src1 % src2;
+        WriteMemory<Type>(opState, TAddr()(opState), static_cast<Type>(TValue()(opState)));
+        return static_cast<Type>(TValue()(opState));
     }
 };
 
