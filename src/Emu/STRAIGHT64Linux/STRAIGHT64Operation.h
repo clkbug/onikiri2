@@ -83,23 +83,6 @@ struct STRAIGHT64IntConst : public std::unary_function<OpEmulationState*, Type>
 };
 
 
-// interface
-inline void STRAIGHT64DoBranch(OpEmulationState* opState, u32 target)
-{
-    opState->SetTaken(true);
-    opState->SetTakenPC(target);
-}
-
-inline u32 STRAIGHT64NextPC(OpEmulationState* opState)
-{
-    return (u32)opState->GetPC() + 4;
-}
-
-inline u32 STRAIGHT64CurPC(OpEmulationState* opState)
-{
-    return (u32)opState->GetPC();
-}
-
 
 // Modulo
 template <typename Type, typename TSrc1, typename TSrc2>

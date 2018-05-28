@@ -103,11 +103,17 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefUnknown =
 STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
 {
     //{Name,    Mask,        Opcode,        nOp, { OpClassCode,          Dst[],      Src[],          OpInfoType::EmulationFunc}[]}
-    { "NOP",    MASK_EXACT,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
+    { "NOP",    MASK_OPCODE,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
     { "SYSCALL",MASK_OPCODE, OPCODE(1),     2,   {
         { OpClassCode::syscall,        { R0, -1 }, { I0, -1, -1 }, STRAIGHT64SyscallSetArg },
         { OpClassCode::syscall_branch, { R0, -1 }, { R0, -1, -1 }, STRAIGHT64SyscallCore },
     } },
+    { "J",      MASK_OPCODE, OPCODE(3),     1,  { { OpClassCode::iJUMP,  { R0, -1 }, { I0, -1, -1 }, BranchRelUncond<S0> } } },
+    { "JR",     MASK_OPCODE, OPCODE(4),     1,  { { OpClassCode::iJUMP,  { R0, -1 }, { R1, -1, -1 }, BranchAbsUncond<S0> } } },
+    { "JAL",    MASK_OPCODE, OPCODE(5),     1,  { { OpClassCode::CALL,   { R0, -1 }, { I0, -1, -1 }, CallRelUncond<D0, S0> } } },
+    { "JRAL",   MASK_OPCODE, OPCODE(6),     1,  { { OpClassCode::CALL_JUMP,  { R0, -1 }, { R1, -1, -1 }, CallAbsUncond<D0, S0> } } },
+    { "BEZ",    MASK_OPCODE, OPCODE(7),     1,  { { OpClassCode::iBC,    { R0, -1 }, { R1, I0, -1 }, BranchRelCond< S1, Compare< S0, IntConst<u64, 0>, IntCondEqual<u64> > > } } },
+    { "BNZ",    MASK_OPCODE, OPCODE(8),     1,  { { OpClassCode::iBC,    { R0, -1 }, { R1, -1, -1 }, BranchRelCond< S1, Compare< S0, IntConst<u64, 0>, IntCondNotEqual<u64> > > } } },
     { "ADD",    MASK_OPCODE, OPCODE(9),     1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntAdd<u64, S0, S1> > } } },
     { "ADDi",   MASK_OPCODE, OPCODE(10),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, IntAdd<u64, S0, S1> > } } },
     { "SUB",    MASK_OPCODE, OPCODE(11),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntSub<u64, S0, S1> > } } },
