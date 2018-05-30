@@ -38,7 +38,14 @@
 namespace Onikiri {
     namespace STRAIGHT64Linux {
 
-        typedef EmulatorUtility::CommonOpInfo<STRAIGHT64Info> STRAIGHT64OpInfo;
+        class STRAIGHT64OpInfo : public EmulatorUtility::CommonOpInfo<STRAIGHT64Info>
+        {
+        public:
+            explicit STRAIGHT64OpInfo(OpClass opClass) : CommonOpInfo<STRAIGHT64Info>(opClass) {}
+            
+            bool isSPADDi() const { return strcmp(m_mnemonic, "SPADDi") == 0; }
+            bool isRPINC() const { return strcmp(m_mnemonic, "RPINC") == 0; }
+        };
 
     } // namespace STRAIGHT64Linux
 } // namespace Onikiri
