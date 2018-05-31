@@ -181,9 +181,9 @@ void STRAIGHT64SyscallCore(EmulatorUtility::OpEmulationState* opState)
     //syscallConv->SetArg(5, SrcOperand<2>()(opState));
     syscallConv->Execute(opState);
 
-    u32 error = (u32)syscallConv->GetResult(EmulatorUtility::SyscallConvIF::ErrorFlagIndex);
-    u32 val = (u32)syscallConv->GetResult(EmulatorUtility::SyscallConvIF::RetValueIndex);
-    DstOperand<0>::SetOperand(opState, error ? (u32)-1 : val);
+    u64 error = syscallConv->GetResult(EmulatorUtility::SyscallConvIF::ErrorFlagIndex);
+    u64 val = syscallConv->GetResult(EmulatorUtility::SyscallConvIF::RetValueIndex);
+    DstOperand<0>::SetOperand(opState, error ? (u64)-1 : val);
     //DstOperand<1>::SetOperand(opState, syscallConv->GetResult(EmulatorUtility::SyscallConvIF::ErrorFlagIndex) );
 }
 

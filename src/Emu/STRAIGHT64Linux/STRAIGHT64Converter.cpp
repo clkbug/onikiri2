@@ -113,7 +113,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     { "JAL",    MASK_OPCODE, OPCODE(5),     1,  { { OpClassCode::CALL,   { R0, -1 }, { I0, -1, -1 }, CallRelUncond<D0, S0> } } },
     { "JRAL",   MASK_OPCODE, OPCODE(6),     1,  { { OpClassCode::CALL_JUMP,  { R0, -1 }, { R1, -1, -1 }, CallAbsUncond<D0, S0> } } },
     { "BEZ",    MASK_OPCODE, OPCODE(7),     1,  { { OpClassCode::iBC,    { R0, -1 }, { R1, I0, -1 }, BranchRelCond< S1, Compare< S0, IntConst<u64, 0>, IntCondEqual<u64> > > } } },
-    { "BNZ",    MASK_OPCODE, OPCODE(8),     1,  { { OpClassCode::iBC,    { R0, -1 }, { R1, -1, -1 }, BranchRelCond< S1, Compare< S0, IntConst<u64, 0>, IntCondNotEqual<u64> > > } } },
+    { "BNZ",    MASK_OPCODE, OPCODE(8),     1,  { { OpClassCode::iBC,    { R0, -1 }, { R1, I0, -1 }, BranchRelCond< S1, Compare< S0, IntConst<u64, 0>, IntCondNotEqual<u64> > > } } },
     { "ADD",    MASK_OPCODE, OPCODE(9),     1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntAdd<u64, S0, S1> > } } },
     { "ADDi",   MASK_OPCODE, OPCODE(10),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, I0, -1 }, Set<D0, IntAdd<u64, S0, S1> > } } },
     { "SUB",    MASK_OPCODE, OPCODE(11),    1,  { { OpClassCode::iALU,   { R0, -1 }, { R1, R2, -1 }, Set<D0, IntSub<u64, S0, S1> > } } },
