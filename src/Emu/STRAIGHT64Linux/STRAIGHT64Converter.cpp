@@ -154,9 +154,9 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     { "LDHU",   MASK_OPCODE, OPCODE(52),    1,  { { OpClassCode::iLD,    { R0, -1 }, { R1, I0, -1 }, Set<D0, Load<u32, STRAIGHT64Addr<S0, S1> > > } } },
     { "LDB",    MASK_OPCODE, OPCODE(53),    1,  { { OpClassCode::iLD,    { R0, -1 }, { R1, I0, -1 }, Set<D0, Load<s8,  STRAIGHT64Addr<S0, S1> > > } } },
     { "LDBU",   MASK_OPCODE, OPCODE(54),    1,  { { OpClassCode::iLD,    { R0, -1 }, { R1, I0, -1 }, Set<D0, Load<u8,  STRAIGHT64Addr<S0, S1> > > } } },
-    { "ST",     MASK_OPCODE, OPCODE(55),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<u64, S2, STRAIGHT64Addr<S0, S1> > > } } },
-    { "STH",    MASK_OPCODE, OPCODE(56),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<s32, S2, STRAIGHT64Addr<S0, S1> > > } } },
-    { "STB",    MASK_OPCODE, OPCODE(57),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<s8,  S2, STRAIGHT64Addr<S0, S1> > > } } }
+    { "ST",     MASK_OPCODE, OPCODE(55),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64Addr<S1, S2> > > } } },
+    { "STH",    MASK_OPCODE, OPCODE(56),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<s32, S0, STRAIGHT64Addr<S1, S2> > > } } },
+    { "STB",    MASK_OPCODE, OPCODE(57),    1,  { { OpClassCode::iST,    { R0, -1 }, { R1, I0, R2 }, Set<D0, STRAIGHT64Store<s8,  S0, STRAIGHT64Addr<S1, S2> > > } } }
     
 };
 
