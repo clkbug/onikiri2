@@ -105,8 +105,8 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     //{Name,    Mask,        Opcode,        nOp, { OpClassCode,          Dst[],      Src[],          OpInfoType::EmulationFunc}[]}
     { "NOP",    MASK_OPCODE,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
     { "SYSCALL",MASK_OPCODE, OPCODE(1),     2,   {
-        { OpClassCode::syscall,        { R0, -1 }, { I0, -1, -1 }, STRAIGHT64SyscallSetArg },
-        { OpClassCode::syscall_branch, { R0, -1 }, { R0, -1, -1 }, STRAIGHT64SyscallCore },
+        { OpClassCode::syscall,        { R0, -1 }, { I0,  1,  2 }, STRAIGHT64SyscallSetArg },
+        { OpClassCode::syscall_branch, { R0, -1 }, { R0,  3,  4 }, STRAIGHT64SyscallCore },
     } },
     { "J",      MASK_OPCODE, OPCODE(3),     1,  { { OpClassCode::iJUMP,  { R0, -1 }, { I0, -1, -1 }, BranchRelUncond<S0> } } },
     { "JR",     MASK_OPCODE, OPCODE(4),     1,  { { OpClassCode::iJUMP,  { R0, -1 }, { R1, -1, -1 }, BranchAbsUncond<S0> } } },

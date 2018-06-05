@@ -55,6 +55,7 @@ namespace Onikiri
             virtual std::pair<OpInfo**, int> GetOp(PC pc)
             {
                 auto opInfoTuple = EmulatorUtility::CommonEmulator<STRAIGHT64LinuxTraits>::GetOp(pc);
+                if (m_opInfoArrayIndex + opInfoTuple.second >= OPINFO_ARRAY_CAPACITY) { m_opInfoArrayIndex = 0; }
                 auto opInfoArrayIndex = m_opInfoArrayIndex;
                 for (int i = 0; i < opInfoTuple.second; i++)
                 {
