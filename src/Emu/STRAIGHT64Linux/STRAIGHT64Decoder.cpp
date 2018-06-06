@@ -58,7 +58,7 @@ INSTTYPE STRAIGHT64Decoder::s_opCodeToRegType[64]{
     OS, TU, OU, TU, OS, TU, OU, TU,
     OS, TU, OU, OU, OU, TU, TU, TU,
     TU, TU, TU, OU, TU, OU, TU, OU,
-    TU, OU, TU, OU, TU, OU, ZU, OS,
+    TU, OU, TU, OU, TU, OU, ZU, ZS,
     ZU, OU, OS, OS, OS, OS, OS, TS,
     TS, TS, OU, OU, OU, OU,
 };
@@ -112,6 +112,14 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
         break;
     default:
         break;
+    }
+
+    for (int i = 0; i < out->Reg.size(); i++)
+    {
+        if (out->Reg[i] == 0)
+        {
+            out->Reg[i] = STRAIGHT64Info::ZeroRegIndex;
+        }
     }
 }
 

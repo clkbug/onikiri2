@@ -104,8 +104,9 @@ void STRAIGHTSystem::Rename(std::pair<OpInfo**, int>* ops, u64* rp)
         opInfo->SetDstReg(0, static_cast<int>(*rp));
         for (int j = 0; j < opInfo->GetSrcNum(); j++)
         {
-            auto d = opInfo->GetSrcOperand(j);
-            auto src = STRAIGHT64Info::CalcRP(*rp, -d);
+            auto distance = opInfo->GetSrcOperand(j);
+            auto src = STRAIGHT64Info::CalcRP(*rp, -distance);
+            if (distance == STRAIGHT64Info::ZeroRegIndex) { continue; }
             opInfo->SetSrcReg(j, static_cast<int>(src));
         }
     }
