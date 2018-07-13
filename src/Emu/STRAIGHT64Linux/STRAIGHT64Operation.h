@@ -158,7 +158,7 @@ struct STRAIGHT64Store : public std::unary_function<EmulatorUtility::OpEmulation
     STRAIGHT64RegisterType operator()(EmulatorUtility::OpEmulationState* opState) const
     {
         WriteMemory<Type>(opState, TAddr()(opState), static_cast<Type>(TValue()(opState)));
-        return static_cast<Type>(TValue()(opState));
+        return static_cast<u32>(static_cast<Type>(TValue()(opState)));
     }
 };
 
