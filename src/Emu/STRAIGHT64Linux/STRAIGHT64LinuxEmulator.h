@@ -72,7 +72,7 @@ namespace Onikiri
             }
 
         private:
-            static const int OPINFO_ARRAY_CAPACITY = 5000;
+            static const int OPINFO_ARRAY_CAPACITY = 50000;
             STRAIGHT64OpInfo* m_opInfoArray[OPINFO_ARRAY_CAPACITY];
             int m_opInfoArrayIndex;
         };

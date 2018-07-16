@@ -122,6 +122,11 @@ void STRAIGHTSystem::AfterEmulatorGetOp(STRAIGHT64LinuxEmulator::GetOpHookParam*
         THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
     }
 
+    // Skip Syscall Branch
+    if (opInfo->isSyscallBranch())
+    {
+        return;
+    }
 
     // Process RPINC
     if (opInfo->isRPINC())
@@ -156,6 +161,16 @@ void STRAIGHTSystem::AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* 
         THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
     }
 
+    // Skip Syscall Branch
+    if (param->second == 2)
+    {
+        static int c = 0;
+        if (c % 2 == 1) {
+            return;
+        }
+        c++;
+    }
+
     // Process RPINC
     if (opInfo->isRPINC())
     {
@@ -187,6 +202,12 @@ void STRAIGHTSystem::OnFetch(Fetcher::FetchHookParam* param)
 
     m_rpTable[op] = m_rp;
     m_spTable[op] = m_sp;
+
+    // Skip Syscall Branch
+    if (opInfo->isSyscallBranch())
+    {
+        return;
+    }
 
     // Process RPINC
     if (opInfo->isRPINC())

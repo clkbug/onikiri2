@@ -39,7 +39,7 @@ namespace Onikiri {
     namespace EmulatorUtility {
 
         // Page size
-        static const int VIRTUAL_MEMORY_PAGE_SIZE_BITS = 20;
+        static const int VIRTUAL_MEMORY_PAGE_SIZE_BITS = 12;
         
         // Page attribute
         typedef u32 VIRTUAL_MEMORY_ATTR_TYPE;

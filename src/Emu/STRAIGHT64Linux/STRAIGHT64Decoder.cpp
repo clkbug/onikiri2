@@ -58,7 +58,7 @@ INSTTYPE STRAIGHT64Decoder::s_opCodeToRegType[64]{
     OS, TU, OU, TU, OS, TU, OU, TU,
     OS, TU, OU, OU, OU, TU, TU, TU,
     TU, TU, TU, OU, TU, OU, TU, OU,
-    TU, OU, TU, OU, TU, OU, ZU, ZS,
+    TU, OU, TU, OU, TU, OU, OU, ZS,
     ZU, OU, OS, OS, OS, OS, OS, TS,
     TS, TS, OU, OU, OU, OU,
 };

@@ -42,7 +42,7 @@ namespace Onikiri {
 
         class MemorySystem
         {
-            static const int RESERVED_PAGES = 4; // 鬼斬りで予約するページ
+            static const int RESERVED_PAGES = 0; // 鬼斬りで予約するページ
             static const int RESERVED_PAGE_NULL = 0;
             static const int RESERVED_PAGE_ZERO_FILLED = 1;
         public:
@@ -54,7 +54,7 @@ namespace Onikiri {
             u64 GetPageSize();
 
             // アドレス0からこれで返すアドレスまでは予約．
-            u64 GetReservedAddressRange(){ return GetPageSize() * RESERVED_PAGES - 1; };
+            u64 GetReservedAddressRange() { return 0; /*GetPageSize() * RESERVED_PAGES - 1;*/ };
 
             // mmapに使うヒープに，[addr, addr+size) の領域を追加する
             void AddHeapBlock(u64 addr, u64 size);
