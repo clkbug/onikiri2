@@ -404,8 +404,8 @@ namespace Onikiri {
                     {
                         printf("[%d <- 0x%llx] ", opInfo->GetDstOperand(0) - opInfo->GetSrcOperand(i), opState.GetSrc(i));
                     }
-                    if (opInfo->GetImmNum() == 1)
-                        printf("%lld", opInfo->GetImm(0));
+                    for (int i = 0; i < opInfo->GetImmNum(); i++)
+                        printf("(%lld) ", opInfo->GetImm(i));
                     printf("\n");
 
                     if( enableResultCRC ){
