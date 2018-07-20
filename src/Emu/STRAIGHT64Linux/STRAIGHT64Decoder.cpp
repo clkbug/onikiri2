@@ -114,7 +114,7 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
         break;
     }
 
-    for (int i = 1; i < out->Reg.size(); i++)
+    for (unsigned int i = 1; i < out->Reg.size(); i++)
     {
         if (out->Reg[i] == 0)
         {

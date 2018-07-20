@@ -399,13 +399,13 @@ namespace Onikiri {
                     opInfo->GetEmulationFunc()(&opState);
                     opState.ApplyEmulationStateToRegArray<OpInfoType>(regArray);
 
-                    printf("0x%8llx 0x%8llx <- %s\t", pc.address, opState.GetDst(0), opInfo->GetMnemonic());
+                    printf("0x%8lx 0x%8lx <- %s\t", pc.address, opState.GetDst(0), opInfo->GetMnemonic());
                     for(int i=0;i<opInfo->GetSrcNum();i++)
                     {
-                        printf("[%3d <- 0x%8llx] ", opInfo->GetDstOperand(0) - opInfo->GetSrcOperand(i), opState.GetSrc(i));
+                        printf("[%3d <- 0x%8lx] ", opInfo->GetDstOperand(0) - opInfo->GetSrcOperand(i), opState.GetSrc(i));
                     }
                     for (int i = 0; i < opInfo->GetImmNum(); i++)
-                        printf("(%lld) ", opInfo->GetImm(i));
+                        printf("(%ld) ", opInfo->GetImm(i));
                     printf("\n");
 
                     if( enableResultCRC ){
