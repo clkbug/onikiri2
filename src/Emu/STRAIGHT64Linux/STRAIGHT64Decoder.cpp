@@ -106,7 +106,7 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
         out->Reg[2] = ExtractBits(codeWord, 6, 10);
         break;
     case INSTTYPE_TWOREG_SIMM:
-        out->Imm[0] = ExtractBits(codeWord, 0, 6);
+        out->Imm[0] = ExtractBits(codeWord, 0, 6, true);
         out->Reg[1] = ExtractBits(codeWord, 16, 10);
         out->Reg[2] = ExtractBits(codeWord, 6, 10);
         break;
