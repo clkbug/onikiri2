@@ -151,7 +151,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     { "ORi",    MASK_OPCODE, OPCODE(43),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, BitOr<u32, S0, S1> > } } },
     { "XOR",    MASK_OPCODE, OPCODE(44),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, R2, -1 }, Set<D0, BitXor<u32, S0, S1> > } } },
     { "XORi",   MASK_OPCODE, OPCODE(45),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, BitXor<u32, S0, S1> > } } },
-    { "LUi",    MASK_OPCODE, OPCODE(46),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, STRAIGHT64Lui<S0> > } } },
+    { "LUi",    MASK_OPCODE, OPCODE(46),    1,{ { OpClassCode::iALU,{ R0, -1 },{ I0, -1, -1 }, Set<D0, STRAIGHT64Lui<S0> > } } },
     { "SPADDi", MASK_OPCODE, OPCODE(47),    1,{ { OpClassCode::iMOV,{ R0, -1 },{ I0, -1, -1 }, Set<D0, STRAIGHT64Copy<S0> > } } }, // iMOV扱いだがフロントエンドで即値を書き換える
     { "RPINC",  MASK_OPCODE, OPCODE(48),    1,{ { OpClassCode::iNOP,{ -1, -1 },{ I0, -1, -1 }, NoOperation } } },                  // フロントエンドで処理するのでNOP扱い
     { "RMOV",   MASK_OPCODE, OPCODE(49),    1,{ { OpClassCode::iMOV,{ R0, -1 },{ R1, -1, -1 }, Set<D0, STRAIGHT64Copy<S0> > } } },
