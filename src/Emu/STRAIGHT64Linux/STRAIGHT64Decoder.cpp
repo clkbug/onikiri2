@@ -53,14 +53,14 @@ namespace
     const INSTTYPE TS = INSTTYPE_TWOREG_SIMM;
 }
 INSTTYPE STRAIGHT64Decoder::s_opCodeToRegType[64]{
-    ZU, ZU, ZU, ZS, OU, ZS, OU, OS,
-    OS, TU, OS, TU, OS, TU, OS, TU,
-    OS, TU, OU, TU, OS, TU, OU, TU,
-    OS, TU, OU, OU, OU, TU, TU, TU,
-    TU, TU, TU, OU, TU, OU, TU, OU,
-    TU, OU, TU, OU, TU, OU, OU, ZS,
-    ZU, OU, OS, OS, OS, OS, OS, TS,
-    TS, TS, OU, OU, OU, OU,
+    ZU, ZU, ZU, ZS, OU, ZS, OU, OS, //  0- 7
+    OS, TU, OS, TU, OS, TU, OS, TU, //  8-15
+    OS, TU, OU, TU, OS, TU, OU, TU, // 16-23
+    OS, TU, OU, OU, OU, TU, TU, TU, // 24-31
+    TU, TU, TU, OU, TU, OU, TU, OU, // 32-39
+    TU, OU, TU, OU, TU, OU, ZU, ZS, // 40-47
+    ZU, OU, OS, OS, OS, OS, OS, TS, // 48-55
+    TS, TS, OU, OU, OU, OU,         // 56, 57, 58, 59, 60, 61
 };
 
 STRAIGHT64Decoder::DecodedInsn::DecodedInsn()
