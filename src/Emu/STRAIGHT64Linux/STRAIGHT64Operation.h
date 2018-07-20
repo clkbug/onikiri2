@@ -122,6 +122,21 @@ struct STRAIGHT64Compare : public std::unary_function<EmulatorUtility::OpEmulati
     }
 };
 
+// FP compare
+template <typename Type, typename TSrc1, typename TSrc2, typename RoundMode = IntConst<int, FE_ROUNDDEFAULT> >
+struct STRAIGHT64FCompare : public std::unary_function<OpEmulationState*, Type>
+{
+    STRAIGHT64RegisterType operator()(OpEmulationState* opState)
+    {
+        Type lhs = TSrc1()(opState);
+        Type rhs = TSrc2()(opState);
+
+        Onikiri::ScopedFESetRound sr(RoundMode()(opState));
+        volatile STRAIGHT64RegisterType rvalue = lhs < rhs;
+        return rvalue;
+    }
+};
+
 // Load upper immediate
 template<typename TSrc1>
 struct STRAIGHT64Lui : public std::unary_function<OpEmulationState, RegisterType>
