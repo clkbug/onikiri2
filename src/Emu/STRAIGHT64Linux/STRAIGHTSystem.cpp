@@ -147,9 +147,11 @@ void STRAIGHTSystem::AfterFetcherGetOp(Fetcher::GetOpHookParam* param)
 
 void STRAIGHTSystem::AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* param)
 {
-    Rename(param, &m_emuRP);
+    auto opInfos = param->opInfos;
+    auto microOpIndex = param->context->microOpIndex;
+    Rename(&opInfos, &m_emuRP);
 
-    auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>(*(*param).first);
+    auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>(opInfos.first[microOpIndex]);
     if (!opInfo)
     {
         THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
