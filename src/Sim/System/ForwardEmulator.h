@@ -83,7 +83,10 @@ namespace Onikiri
         bool IsEnabled() const { return m_enable; }
 
         // HookPoint
-        typedef std::pair<OpInfo**, int> GetOpHookParam;
+        typedef struct {
+            std::pair<OpInfo**, int> opInfos;
+            ArchitectureState* context;
+        } GetOpHookParam;
         static HookPoint<ForwardEmulator, GetOpHookParam> s_getOpHook;
 
         //
