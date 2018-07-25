@@ -55,7 +55,7 @@ namespace Onikiri
             u64 GetSP(OpIterator op) { return m_spTable[op]; }
             void SetSP(OpIterator op, u64 sp) { m_spTable[op] = sp; }
 
-            void Rename(std::pair<OpInfo**, int>* ops, u64* rp);
+            void Rename(std::pair<OpInfo**, int> ops, u64 rp);
 
             void AfterEmulatorGetOp(STRAIGHT64Linux::STRAIGHT64LinuxEmulator::GetOpHookParam* param);
             void OnFetch(Fetcher::FetchHookParam* param);

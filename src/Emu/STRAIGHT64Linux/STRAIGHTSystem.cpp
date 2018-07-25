@@ -92,20 +92,20 @@ void STRAIGHTSystem::ChangeSimulationMode(SimulationMode mode)
     }
 }
 
-void STRAIGHTSystem::Rename(std::pair<OpInfo**, int>* ops, u64* rp)
+void STRAIGHTSystem::Rename(std::pair<OpInfo**, int> ops, u64 rp)
 {
-    for (int i = 0; i < ops->second; i++)
+    for (int i = 0; i < ops.second; i++)
     {
-        auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>((*ops).first[i]);
+        auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>(ops.first[i]);
         if (!opInfo)
         {
             THROW_RUNTIME_ERROR("STRAIGHTSystemがSTRAIGHTOpInfoでないものを掴まされた．");
         }
-        opInfo->SetDstReg(0, static_cast<int>(*rp));
+        opInfo->SetDstReg(0, static_cast<int>(rp));
         for (int j = 0; j < opInfo->GetSrcNum(); j++)
         {
             auto distance = opInfo->GetSrcOperand(j);
-            auto src = STRAIGHT64Info::CalcRP(*rp, -distance);
+            auto src = STRAIGHT64Info::CalcRP(rp, -distance);
             if (distance == STRAIGHT64Info::ZeroRegIndex) { continue; }
             opInfo->SetSrcReg(j, static_cast<int>(src));
         }
@@ -114,7 +114,7 @@ void STRAIGHTSystem::Rename(std::pair<OpInfo**, int>* ops, u64* rp)
 
 void STRAIGHTSystem::AfterEmulatorGetOp(STRAIGHT64LinuxEmulator::GetOpHookParam* param)
 {
-    Rename(param, &m_emuRP);
+    Rename(*param, m_emuRP);
 
     auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>(*(param->first));
     if (!opInfo)
@@ -142,14 +142,14 @@ void STRAIGHTSystem::AfterEmulatorGetOp(STRAIGHT64LinuxEmulator::GetOpHookParam*
 
 void STRAIGHTSystem::AfterFetcherGetOp(Fetcher::GetOpHookParam* param)
 {
-    Rename(param, &m_rp);
+    Rename(*param, m_rp);
 }
 
 void STRAIGHTSystem::AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* param)
 {
     auto opInfos = param->opInfos;
     auto microOpIndex = param->context->microOpIndex;
-    Rename(&opInfos, &m_emuRP);
+    Rename(opInfos, m_emuRP);
 
     auto opInfo = dynamic_cast<STRAIGHT64OpInfo*>(opInfos.first[microOpIndex]);
     if (!opInfo)
@@ -161,10 +161,6 @@ void STRAIGHTSystem::AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* 
     if (opInfo->isSyscallBranch())
     {
         return;
-    }
-    else if (opInfo->isSyscall())
-    {
-        printf("bbbb");
     }
 
 
@@ -204,9 +200,6 @@ void STRAIGHTSystem::OnFetch(Fetcher::FetchHookParam* param)
     if (opInfo->isSyscallBranch())
     {
         return;
-    }else if(opInfo->isSyscall())
-    {
-        printf("ccccc");
     }
 
     // Process RPINC
