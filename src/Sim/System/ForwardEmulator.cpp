@@ -121,13 +121,14 @@ void ForwardEmulator::OnFetch( OpIterator simOp )
     entry->retireId = simOp->GetRetireID();
 
     // Get OpInfo
-    std::pair<OpInfo**, int> ops;
-    HOOK_SECTION_PARAM(s_getOpHook, ops)
+    GetOpHookParam param;
+    param.context = context;
+    HOOK_SECTION_PARAM(s_getOpHook, param)
     {
-        ops = m_emulator->GetOp(context->pc);
+        param.opInfos = m_emulator->GetOp(context->pc);
     }
-    OpInfo** opInfoArray = ops.first;
-    int opCount          = ops.second;
+    OpInfo** opInfoArray = param.opInfos.first;
+    int opCount          = param.opInfos.second;
     ASSERT( context->microOpIndex < opCount );
     OpInfo* opInfo = opInfoArray[ context->microOpIndex ];
     entry->updatePC = context->microOpIndex >= opCount - 1;
