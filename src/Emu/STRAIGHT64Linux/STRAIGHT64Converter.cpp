@@ -41,6 +41,7 @@
 #include "Emu/STRAIGHT64Linux/STRAIGHT64Decoder.h"
 #include "Emu/STRAIGHT64Linux/STRAIGHT64Operation.h"
 #include "Emu/STRAIGHT64Linux/STRAIGHT64Converter.h"
+#include "Emu/RISCV32Linux/RISCV32Operation.h"
 
 using namespace std;
 using namespace boost;
@@ -84,16 +85,6 @@ namespace {
 
     const u32 MASK_STB = 0x3f; // Store/Branchは最下位6bitがOPCODE
 }
-const u32 OPCODE_ST8 = 0b000111;
-const u32 OPCODE_ST16 = 0b100111;
-const u32 OPCODE_ST32 = 0b010111;
-const u32 OPCODE_ST64 = 0b110111;
-const u32 OPCODE_BLT = 0b000011;
-const u32 OPCODE_BGE = 0b100011;
-const u32 OPCODE_BLTU = 0b010011;
-const u32 OPCODE_BGEU = 0b110011;
-const u32 OPCODE_BEQ = 0b001011;
-const u32 OPCODE_BNE = 0b101011;
 
 #define STRAIGHT64_DSTOP(n) STRAIGHT64DstOperand<n>
 #define STRAIGHT64_SRCOP(n) STRAIGHT64SrcOperand<n>
@@ -121,6 +112,12 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"ST.32",   MASK_STB,    0b010111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u32, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.64",   MASK_STB,    0b110111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.64",   MASK_STB,    0b110111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64Addr<S1, S2> > > }},
+    {"blt",     MASK_STB,    0b000011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32Linux::Operation::RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondLessSigned<u32> > >}},
+    {"bge",     MASK_STB,    0b100011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32Linux::Operation::RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualSigned<u32> > >}},
+    {"bltu",    MASK_STB,    0b010011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32Linux::Operation::RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondLessUnsigned<u32> > >}},
+    {"bgeu",    MASK_STB,    0b110011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32Linux::Operation::RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualUnsigned<u32> > >}},
+    {"beq",     MASK_STB,    0b001011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32Linux::Operation::RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondEqual<u32> > >}},
+    {"bne",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32Linux::Operation::RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondNotEqual<u32> > >}},
     //{ "NOP",    MASK_OPCODE,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
     //{ "SYSCALL",MASK_OPCODE, OPCODE(1),     2,   {
     //    { OpClassCode::syscall,        { R0, -1 }, { I0,  1,  2 }, STRAIGHT64SyscallSetArg },
