@@ -33,6 +33,7 @@
 #define EMU_STRAIGHT64LINUX_STRAIGHT64_DECODER_H
 
 #include "Emu/STRAIGHT64Linux/STRAIGHT64Info.h"
+#include <winerror.h>
 
 namespace Onikiri
 {
@@ -40,12 +41,7 @@ namespace Onikiri
     {
         enum INSTTYPE
         {
-            INSTTYPE_ZEROREG_UIMM,  // ZeroRegType (Unsigned Immediate Value)
-            INSTTYPE_ZEROREG_SIMM,  // ZeroRegType (Signed Immediate Value)
-            INSTTYPE_ONEREG_UIMM,   // OneRegType (Unsigned Immediate Value)
-            INSTTYPE_ONEREG_SIMM,   // OneRegType (Signed Immediate Value)
-            INSTTYPE_TWOREG_UIMM,   // TwoRegType (Unsigned Immediate Value)
-            INSTTYPE_TWOREG_SIMM,   // TwoRegType (Ssigned Immediate Value)
+            INSTTYPE_STB // Store or Branch
         };
         class STRAIGHT64Decoder
         {
@@ -57,6 +53,8 @@ namespace Onikiri
                 // オペランド・レジスタ(dest, src1, src2)
                 boost::array<int, 3> Reg;
 
+                INSTTYPE instType;
+
                 u32 CodeWord;
 
                 DecodedInsn();
@@ -66,8 +64,9 @@ namespace Onikiri
 
             // 命令codeWordをデコードし，outに格納する
             void Decode(u32 codeWord, DecodedInsn* out);
+
         private:
-            static INSTTYPE s_opCodeToRegType[64];
+            INSTTYPE GetInstType(u32 codeword);
         };
 
     } // namespace STRAIGHT64Linux

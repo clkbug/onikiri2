@@ -43,25 +43,16 @@ using namespace Onikiri;
 using namespace Onikiri::EmulatorUtility;
 using namespace Onikiri::STRAIGHT64Linux;
 
-namespace
-{
-    const INSTTYPE ZU = INSTTYPE_ZEROREG_UIMM;
-    const INSTTYPE ZS = INSTTYPE_ZEROREG_SIMM;
-    const INSTTYPE OU = INSTTYPE_ONEREG_UIMM;
-    const INSTTYPE OS = INSTTYPE_ONEREG_SIMM;
-    const INSTTYPE TU = INSTTYPE_TWOREG_UIMM;
-    const INSTTYPE TS = INSTTYPE_TWOREG_SIMM;
-}
-INSTTYPE STRAIGHT64Decoder::s_opCodeToRegType[64]{
-    ZU, ZU, ZU, ZS, OU, ZS, OU, OS, //  0- 7
-    OS, TU, OS, TU, OS, TU, OS, TU, //  8-15
-    OS, TU, OU, TU, OS, TU, OU, TU, // 16-23
-    OS, TU, OU, OU, OU, TU, TU, TU, // 24-31
-    TU, TU, TU, OU, TU, OU, TU, OU, // 32-39
-    TU, OU, TU, OU, TU, OU, ZU, ZS, // 40-47
-    ZU, OU, OS, OS, OS, OS, OS, TS, // 48-55
-    TS, TS, OU, OU, OU, OU,         // 56, 57, 58, 59, 60, 61
-};
+const u32 OPCODE_ST8 = 0b000111;
+const u32 OPCODE_ST16 = 0b100111;
+const u32 OPCODE_ST32 = 0b010111;
+const u32 OPCODE_ST64 = 0b110111;
+const u32 OPCODE_BLT = 0b000011;
+const u32 OPCODE_BGE = 0b100011;
+const u32 OPCODE_BLTU = 0b010011;
+const u32 OPCODE_BGEU = 0b110011;
+const u32 OPCODE_BEQ = 0b001011;
+const u32 OPCODE_BNE = 0b101011;
 
 STRAIGHT64Decoder::DecodedInsn::DecodedInsn()
 {
@@ -80,39 +71,19 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
 {
     out->clear();
     out->CodeWord = codeWord;
-
-    const u32 opcode = (codeWord >> 26) & 0x3f;
-    const INSTTYPE instType = s_opCodeToRegType[opcode];
-    
+    out->instType = GetInstType(codeWord);
     out->Reg[0] = 0;
-    switch (instType) {
-    case INSTTYPE_ZEROREG_UIMM:
-        out->Imm[0] = ExtractBits(codeWord, 0, 26);
-        break;
-    case INSTTYPE_ZEROREG_SIMM:
-        out->Imm[0] = ExtractBits(static_cast<u64>(codeWord), 0, 26, true);
-        break;
-    case INSTTYPE_ONEREG_UIMM:
-        out->Imm[0] = ExtractBits(codeWord, 0, 16);
-        out->Reg[1] = ExtractBits(codeWord, 16, 10);
-        break;
-    case INSTTYPE_ONEREG_SIMM:
-        out->Imm[0] = ExtractBits(static_cast<u64>(codeWord), 0, 16, true);
-        out->Reg[1] = ExtractBits(codeWord, 16, 10);
-        break;
-    case INSTTYPE_TWOREG_UIMM:
-        out->Imm[0] = ExtractBits(codeWord, 0, 6);
-        out->Reg[1] = ExtractBits(codeWord, 16, 10);
-        out->Reg[2] = ExtractBits(codeWord, 6, 10);
-        break;
-    case INSTTYPE_TWOREG_SIMM:
-        out->Imm[0] = ExtractBits(codeWord, 0, 6, true);
-        out->Reg[1] = ExtractBits(codeWord, 16, 10);
-        out->Reg[2] = ExtractBits(codeWord, 6, 10);
+
+    switch (out->instType){
+    case INSTTYPE_STB:
+        out->Imm[0] = ExtractBits(codeWord, 7, 12, true);
+        out->Reg[0] = ExtractBits(codeWord, 26, 7, true);
+        out->Reg[1] = ExtractBits(codeWord, 19, 7, true);
         break;
     default:
-        break;
+        THROW_RUNTIME_ERROR("decode error:");
     }
+
 
     for (unsigned int i = 1; i < out->Reg.size(); i++)
     {
@@ -123,3 +94,9 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     }
 }
 
+INSTTYPE STRAIGHT64Decoder::GetInstType(u32 codeWord)
+{
+    if ((codeWord & 0x1f) != 0b11011) return INSTTYPE_STB;
+
+    THROW_RUNTIME_ERROR("decode error: %d = %b", codeWord, codeWord);
+}
