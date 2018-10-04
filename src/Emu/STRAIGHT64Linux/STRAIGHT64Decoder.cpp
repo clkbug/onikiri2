@@ -43,16 +43,6 @@ using namespace Onikiri;
 using namespace Onikiri::EmulatorUtility;
 using namespace Onikiri::STRAIGHT64Linux;
 
-const u32 OPCODE_ST8 = 0b000111;
-const u32 OPCODE_ST16 = 0b100111;
-const u32 OPCODE_ST32 = 0b010111;
-const u32 OPCODE_ST64 = 0b110111;
-const u32 OPCODE_BLT = 0b000011;
-const u32 OPCODE_BGE = 0b100011;
-const u32 OPCODE_BLTU = 0b010011;
-const u32 OPCODE_BGEU = 0b110011;
-const u32 OPCODE_BEQ = 0b001011;
-const u32 OPCODE_BNE = 0b101011;
 
 STRAIGHT64Decoder::DecodedInsn::DecodedInsn()
 {
@@ -76,9 +66,25 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
 
     switch (out->instType){
     case INSTTYPE_STB:
-        out->Imm[0] = ExtractBits(codeWord, 7, 12, true);
-        out->Reg[0] = ExtractBits(codeWord, 26, 7, true);
-        out->Reg[1] = ExtractBits(codeWord, 19, 7, true);
+        out->Imm[0] = ExtractBits(codeWord, 6, 12, true);
+        out->Reg[1] = ExtractBits(codeWord, 18, 7, false);
+        out->Reg[0] = ExtractBits(codeWord, 25, 7, false);
+        break;
+    case INSTTYPE_ONEREG:
+        out->Imm[0] = ExtractBits(codeWord, 13, 12, true);
+        out->Reg[0] = ExtractBits(codeWord, 25, 7, false);
+
+        // shift instructions
+        if(((codeWord >> 8) & 0b111) == 0b001 || ((codeWord >> 8) & 0b111) == 0b101)
+        {
+            bool is64bit = (codeWord >> 7) & 1;
+            out->Imm[0] = ExtractBits(codeWord, 18, is64bit ? 6 : 5, false);
+        }
+
+        break;
+    case INSTTYPE_TWOREG:
+        out->Reg[1] = ExtractBits(codeWord, 18, 7, false);
+        out->Reg[0] = ExtractBits(codeWord, 25, 7, false);
         break;
     default:
         THROW_RUNTIME_ERROR("decode error:");
@@ -94,9 +100,13 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     }
 }
 
-INSTTYPE STRAIGHT64Decoder::GetInstType(u32 codeWord)
+INSTTYPE STRAIGHT64Decoder::GetInstType(const u32 codeWord)
 {
     if ((codeWord & 0x1f) != 0b11011) return INSTTYPE_STB;
+
+    if (((codeWord & 0x7f) == 0x4f) && (((codeWord >> 11) & 0b11) == 0b10))  return INSTTYPE_ONEREG;
+
+    if (((codeWord & 0x7f) == 0x4f) && (((codeWord >> 11) & 0b11) == 0b11))  return INSTTYPE_TWOREG;
 
     THROW_RUNTIME_ERROR("decode error: %d = %b", codeWord, codeWord);
 }

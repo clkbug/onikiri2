@@ -41,7 +41,9 @@ namespace Onikiri
     {
         enum INSTTYPE
         {
-            INSTTYPE_STB // Store or Branch
+            INSTTYPE_STB,    // Store or Branch
+            INSTTYPE_ONEREG, // One Reg (imm12bit)
+            INSTTYPE_TWOREG, // Two Reg
         };
         class STRAIGHT64Decoder
         {

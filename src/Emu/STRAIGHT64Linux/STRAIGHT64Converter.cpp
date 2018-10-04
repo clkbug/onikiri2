@@ -81,14 +81,26 @@ namespace {
 namespace {
     // 各命令形式に対するオペコードを得るためのマスク (0のビットが引数)
     const u32 MASK_EXACT = 0xffffffff;  // 全bitが一致
-    const u32 MASK_OPCODE = 0xfc000000; // 最上位6ビットがOPCODE
 
     const u32 MASK_STB = 0x3f; // Store/Branchは最下位6bitがOPCODE
+    const u32 MASK_ONEREG = 0x1ff; // 最下位13bitを見る
+    const u32 MASK_SFTIMM = 0x183ffff;
+    const u32 MASK_TWOREG = 0x3ffff; // 最下位18bit
 }
 
 #define STRAIGHT64_DSTOP(n) STRAIGHT64DstOperand<n>
 #define STRAIGHT64_SRCOP(n) STRAIGHT64SrcOperand<n>
-#define OPCODE(n) ((unsigned)(n)<<26)
+
+#define OPCODE_ONEREG32(opcode) (((opcode)<<8) | 0b10'000'0'1001111)
+#define OPCODE_ONEREG64(opcode) (((opcode)<<8) | 0b10'000'1'1001111)
+
+                                   // ..' imm ' x   '..'opc'.'.......
+#define OPCODE_SFTIMM32(opcode, a) (0b00'00000'00000'10'000'0'1001111 | ((opcode)<<8) | ((a)<<17))
+#define OPCODE_SFTIMM64(opcode, a) (0b00'00000'00000'10'000'1'1001111 | ((opcode)<<8) | ((a)<<17))
+
+#define OPCODE_TWOREG32(op1, op2) (0b00000'11'000'0'1001111 | (op1 << 13) | (op2 << 8))
+#define OPCODE_TWOREG64(op1, op2) (0b00000'11'000'1'1001111 | (op1 << 13) | (op2 << 8))
+
 
 #define D0 STRAIGHT64_DSTOP(0)
 #define D1 STRAIGHT64_DSTOP(1)
@@ -111,13 +123,43 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"ST.16",   MASK_STB,    0b100111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u16, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.32",   MASK_STB,    0b010111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u32, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.64",   MASK_STB,    0b110111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64Addr<S1, S2> > > }},
-    {"ST.64",   MASK_STB,    0b110111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64Addr<S1, S2> > > }},
-    {"blt",     MASK_STB,    0b000011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondLessSigned<u32> > >}},
-    {"bge",     MASK_STB,    0b100011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualSigned<u32> > >}},
-    {"bltu",    MASK_STB,    0b010011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondLessUnsigned<u32> > >}},
-    {"bgeu",    MASK_STB,    0b110011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualUnsigned<u32> > >}},
-    {"beq",     MASK_STB,    0b001011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondEqual<u32> > >}},
-    {"bne",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondNotEqual<u32> > >}},
+    {"Blt",     MASK_STB,    0b000011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondLessSigned<u32> > >}},
+    {"Bge",     MASK_STB,    0b100011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualSigned<u32> > >}},
+    {"Bltu",    MASK_STB,    0b010011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondLessUnsigned<u32> > >}},
+    {"Bgeu",    MASK_STB,    0b110011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualUnsigned<u32> > >}},
+    {"Beq",     MASK_STB,    0b001011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondEqual<u32> > >}},
+    {"Bne",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondNotEqual<u32> > >}},
+
+    // OneReg
+    {"ADDi.32",  MASK_ONEREG, OPCODE_ONEREG32(0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u32, S0, S1> >}},
+    {"SLTi.32",  MASK_ONEREG, OPCODE_ONEREG32(0b010), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, RISCV32Compare<S0, S1, IntCondLessSigned<u32> > >}},
+    {"SLTiu.32", MASK_ONEREG, OPCODE_ONEREG32(0b011), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, RISCV32Compare<S0, S1, IntCondLessUnsigned<u32> > >}},
+    {"XORi.32",  MASK_ONEREG, OPCODE_ONEREG32(0b100), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitXor<u32, S0, S1> >}},
+    {"ORi.32",   MASK_ONEREG, OPCODE_ONEREG32(0b110), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitOr<u32, S0, S1> >}},
+    {"ANDi.32",  MASK_ONEREG, OPCODE_ONEREG32(0b111), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitAnd<u32, S0, S1> >}},
+    {"SLLi.32",  MASK_SFTIMM, OPCODE_SFTIMM32(0b001, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftL<u32, S0, S1, 0x1f> >}},
+    {"SRLi.32",  MASK_SFTIMM, OPCODE_ONEREG32(0b101, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftR<u32, S0, S1, 0x1f> >}},
+    {"SRAi.32",  MASK_SFTIMM, OPCODE_ONEREG32(0b101, 1), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, AShiftR<u32, S0, S1, 0x1f> >}},
+
+    // TwoReg
+    {"ADD.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, IntAdd<u32, S0, S1> >}},
+    {"SUB.32",   MASK_TWOREG, OPCODE_TWOREG32(0b01000, 0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, IntSub<u32, S0, S1> >}},
+    {"SLL.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b001), 1, { OpClassCode::iSFT, {R0, -1}, {R1, R2, -1}, Set<D0, LShiftL<u32, S0, S1, 0x1f> >}},
+    {"SLT.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b010), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, Compare<S0, S1, IntCondLessSigned<u32> > >}},
+    {"SLTu.32",  MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b011), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, Compare<S0, S1, IntCondLessUnsigned<u32> > >}},
+    {"XOR.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b100), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, BitXor<u32, S0, S1> >}},
+    {"SRL.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b101), 1, { OpClassCode::iSFT, {R0, -1}, {R1, R2, -1}, Set<D0, LShiftR<u32, S0, S1, 0x1f> >}},
+    {"SRA.32",   MASK_TWOREG, OPCODE_TWOREG32(0b01000, 0b101), 1, { OpClassCode::iSFT, {R0, -1}, {R1, R2, -1}, Set<D0, AShiftR<u32, S0, S1, 0x1f> >}},
+    {"OR.32",    MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b110), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, BitAnd<u32, S0, S1> >}},
+    {"AND.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b111), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, BitOr<u32, S0, S1> >}},
+    {"MUL.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b000), 1, { OpClassCode::iMUL, {R0, -1}, {R1, R2, -1}, Set<D0, IntMul<u32, S0, S1> >}},
+    {"DIV.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b100), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntDiv<S0, S1> >}},
+    {"DIVu.32",  MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b101), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntDiv<S0, S1> >}},
+    {"REM.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b110), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntRem<S0, S1> >}},
+    {"REMu.32",  MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b111), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntRemu<S0, S1> >}},
+
+
+
     //{ "NOP",    MASK_OPCODE,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
     //{ "SYSCALL",MASK_OPCODE, OPCODE(1),     2,   {
     //    { OpClassCode::syscall,        { R0, -1 }, { I0,  1,  2 }, STRAIGHT64SyscallSetArg },
