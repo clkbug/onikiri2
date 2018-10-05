@@ -104,9 +104,11 @@ INSTTYPE STRAIGHT64Decoder::GetInstType(const u32 codeWord)
 {
     if ((codeWord & 0x1f) != 0b11011) return INSTTYPE_STB;
 
-    if (((codeWord & 0x7f) == 0x4f) && (((codeWord >> 11) & 0b11) == 0b10))  return INSTTYPE_ONEREG;
-
-    if (((codeWord & 0x7f) == 0x4f) && (((codeWord >> 11) & 0b11) == 0b11))  return INSTTYPE_TWOREG;
+    if ((codeWord & 0x7f) == 0x1f && (codeWord >> 7 & 0x3) != 0x3) return INSTTYPE_ONEREG;
+    if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b10)  return INSTTYPE_ONEREG;
+    
+    if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b11)  return INSTTYPE_TWOREG;
 
     THROW_RUNTIME_ERROR("decode error: %d = %b", codeWord, codeWord);
+    return INSTTYPE_ERROR;
 }

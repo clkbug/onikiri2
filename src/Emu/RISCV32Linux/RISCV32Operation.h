@@ -258,7 +258,7 @@ struct RISCV32IntRemu : public std::unary_function<OpEmulationState*, u32>
 };
 
 
-void RISCV32SyscallSetArg(EmulatorUtility::OpEmulationState* opState)
+inline void RISCV32SyscallSetArg(EmulatorUtility::OpEmulationState* opState)
 {
     EmulatorUtility::SyscallConvIF* syscallConv = opState->GetProcessState()->GetSyscallConv();
     syscallConv->SetArg(0, SrcOperand<0>()(opState));
@@ -268,7 +268,7 @@ void RISCV32SyscallSetArg(EmulatorUtility::OpEmulationState* opState)
 }
 
 // invoke syscall, get result&error and branch if any
-void RISCV32SyscallCore(EmulatorUtility::OpEmulationState* opState)
+inline void RISCV32SyscallCore(EmulatorUtility::OpEmulationState* opState)
 {
     EmulatorUtility::SyscallConvIF* syscallConv = opState->GetProcessState()->GetSyscallConv();
     syscallConv->SetArg(3, SrcOperand<1>()(opState));
