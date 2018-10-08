@@ -67,12 +67,17 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     switch (out->instType){
     case INSTTYPE_STB:
         out->Imm[0] = ExtractBits(codeWord, 6, 12, true);
-        out->Reg[1] = ExtractBits(codeWord, 18, 7, false);
-        out->Reg[0] = ExtractBits(codeWord, 25, 7, false);
+        out->Reg[2] = ExtractBits(codeWord, 18, 7, false);
+        out->Reg[1] = ExtractBits(codeWord, 25, 7, false);
+        break;
+    case INSTTYPE_ECALL:
+        break;
+    case INSTTYPE_RPINC:
+        out->Imm[0] = ExtractBits(codeWord, 25, 7, false);
         break;
     case INSTTYPE_ONEREG:
         out->Imm[0] = ExtractBits(codeWord, 13, 12, true);
-        out->Reg[0] = ExtractBits(codeWord, 25, 7, false);
+        out->Reg[1] = ExtractBits(codeWord, 25, 7, false);
 
         // shift instructions
         if(((codeWord >> 8) & 0b111) == 0b001 || ((codeWord >> 8) & 0b111) == 0b101)
@@ -83,8 +88,8 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
 
         break;
     case INSTTYPE_TWOREG:
-        out->Reg[1] = ExtractBits(codeWord, 18, 7, false);
-        out->Reg[0] = ExtractBits(codeWord, 25, 7, false);
+        out->Reg[2] = ExtractBits(codeWord, 18, 7, false);
+        out->Reg[1] = ExtractBits(codeWord, 25, 7, false);
         break;
     default:
         THROW_RUNTIME_ERROR("decode error:");
@@ -102,10 +107,21 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
 
 INSTTYPE STRAIGHT64Decoder::GetInstType(const u32 codeWord)
 {
-    if ((codeWord & 0x1f) != 0b11011) return INSTTYPE_STB;
+    switch (codeWord & 0x1f)
+    {
+    case 0b000111:
+    case 0b100111:
+    case 0b010111:
+    case 0b110111:
+        return INSTTYPE_STB;
+    }
 
-    if ((codeWord & 0x7f) == 0x1f && (codeWord >> 7 & 0x3) != 0x3) return INSTTYPE_ONEREG;
-    if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b10)  return INSTTYPE_ONEREG;
+    if ((codeWord & 0x1ffffff) == 0b1111) return INSTTYPE_RPINC;
+
+    if (codeWord == 0b010'0001111) return INSTTYPE_ECALL;
+
+    if ((codeWord & 0x7f) == 0x1f && (codeWord >> 7 & 0x3) != 0x3) return INSTTYPE_ONEREG;     // SPLD/SPST/LD/...
+    if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b10)  return INSTTYPE_ONEREG; // ADDi/SLTi/...
     
     if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b11)  return INSTTYPE_TWOREG;
 

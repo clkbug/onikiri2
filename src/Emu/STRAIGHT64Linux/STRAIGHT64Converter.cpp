@@ -71,6 +71,7 @@ namespace {
     const int R4 = RegTemplateBegin + 4;
 
     const int I0 = ImmTemplateBegin + 0;
+    const int I1 = ImmTemplateBegin + 1;
 }
 
 
@@ -83,7 +84,7 @@ namespace {
     const u32 MASK_EXACT = 0xffffffff;  // 全bitが一致
 
     const u32 MASK_STB = 0x3f; // Store/Branchは最下位6bitがOPCODE
-    const u32 MASK_ONEREG = 0x1ff; // 最下位13bitを見る
+    const u32 MASK_ONEREG = 0x1fff; // 最下位13bitを見る
     const u32 MASK_SFTIMM = 0x183ffff;
     const u32 MASK_TWOREG = 0x3ffff; // 最下位18bit
 }
@@ -132,8 +133,14 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     //{"Beq",     MASK_STB,    0b001011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondEqual<u64> > >}},
     //{"Bne",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondNotEqual<u64> > >}},
 
+    // ecall
+    { "SYSCALL", MASK_EXACT, 0b010'0001111, 2, {
+        { OpClassCode::syscall,        { R0, -1 }, { 1,  2,  3 },  STRAIGHT64SyscallSetArg },
+        { OpClassCode::syscall_branch, { R0, -1 }, { R0,  4,  5 }, STRAIGHT64SyscallCore },
+    } },
+
     // OneReg
-    {"NOP/RPINC",  MASK_ONEREG, OPCODE_CTRLMEM(0b000'000), 1, { OpClassCode::iNOP, {-1, -1}, {R0, -1, -1}, NoOperation}}, // フロントエンドで処理するのでNOP扱い．即値は特別に7bitでとるのでR0
+    {"NOP/RPINC",  MASK_ONEREG, OPCODE_CTRLMEM(0b000'000), 1, { OpClassCode::iNOP, {-1, -1}, {I0, -1, -1}, NoOperation}}, // フロントエンドで処理するのでRPINCもNOP扱い
     {"SPLD.8",     MASK_ONEREG, OPCODE_CTRLMEM(0b000'100), 1, { OpClassCode::iLD,  {-1, -1}, {R0, -1, -1}, NoOperation}}, // unimplemented
     {"SPST.8",     MASK_ONEREG, OPCODE_CTRLMEM(0b000'101), 1, { OpClassCode::iLD,  {-1, -1}, {R0, -1, -1}, NoOperation}}, // unimplemented
     {"LD.8",       MASK_ONEREG, OPCODE_CTRLMEM(0b000'110), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, -1}, Set<D0, Load<s8,  STRAIGHT64Addr<S0, S1> > >}},
@@ -169,7 +176,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"AND.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b111), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, BitOr<u32, S0, S1> >}},
     {"MUL.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b000), 1, { OpClassCode::iMUL, {R0, -1}, {R1, R2, -1}, Set<D0, IntMul<u32, S0, S1> >}},
     {"DIV.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b100), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntDiv<S0, S1> >}},
-    {"DIVu.32",  MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b101), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntDiv<S0, S1> >}},
+    {"DIVu.32",  MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b101), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntDivu<S0, S1> >}},
     {"REM.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b110), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntRem<S0, S1> >}},
     {"REMu.32",  MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b111), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntRemu<S0, S1> >}},
 

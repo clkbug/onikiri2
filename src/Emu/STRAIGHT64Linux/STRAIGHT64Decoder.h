@@ -43,6 +43,8 @@ namespace Onikiri
         {
             INSTTYPE_STB,    // Store or Branch
             INSTTYPE_ONEREG, // One Reg (imm12bit)
+            INSTTYPE_ECALL,  // ECALL
+            INSTTYPE_RPINC,  // NOP/RPINC
             INSTTYPE_TWOREG, // Two Reg
             INSTTYPE_ERROR,
         };
