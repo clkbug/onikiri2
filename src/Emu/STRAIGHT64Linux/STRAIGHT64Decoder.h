@@ -45,6 +45,7 @@ namespace Onikiri
             INSTTYPE_ECALL,  // ECALL
             INSTTYPE_RPINC,  // NOP/RPINC
             INSTTYPE_TWOREG, // Two Reg
+            INSTTYPE_NOREG,  // No Reg
             INSTTYPE_ERROR,
         };
         class STRAIGHT64Decoder

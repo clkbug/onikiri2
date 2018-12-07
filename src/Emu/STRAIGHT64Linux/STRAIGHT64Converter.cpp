@@ -89,6 +89,7 @@ namespace {
     const u32 MASK_ONEREG = 0x1fff; // 最下位13bitを見る
     const u32 MASK_SFTIMM = 0x183ffff;
     const u32 MASK_TWOREG = 0x3ffff; // 最下位18bit
+    const u32 MASK_NOREG = 0xfff; // 最下位12bit
 }
 
 #define STRAIGHT64_DSTOP(n) STRAIGHT64DstOperand<n>
@@ -106,6 +107,7 @@ namespace {
 #define OPCODE_TWOREG32(op1, op2) (0b00000'11'000'0'1001111 | (op1 << 13) | (op2 << 8))
 #define OPCODE_TWOREG64(op1, op2) (0b00000'11'000'1'1001111 | (op1 << 13) | (op2 << 8))
 
+#define OPCODE_NOREG(opcode) (0b00'011'0001111 | (opcode << 9))
 
 #define D0 STRAIGHT64_DSTOP(0)
 #define D1 STRAIGHT64_DSTOP(1)
@@ -208,6 +210,14 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"REM.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00001, 0b110), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64IntRem<S0, S1> >}},
     {"REMu.64",  MASK_TWOREG, OPCODE_TWOREG64(0b00001, 0b111), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64IntRemu<S0, S1> >}},
 
+
+    // No Reg
+    {"J",       MASK_NOREG, OPCODE_NOREG(0b00'0), 1,  { { OpClassCode::iJUMP,     {-1, -1},   {I0, -1, -1},   RISCV64BranchRelUncond<S0> } } },
+    {"JAL",     MASK_NOREG, OPCODE_NOREG(0b01'0), 1,  { { OpClassCode::CALL_JUMP, {R0, -1},   {I0, -1, -1},   RISCV64CallRelUncond<D0, S0> } } },
+    {"LUi",     MASK_NOREG, OPCODE_NOREG(0b10'1), 1,  { { OpClassCode::iALU, {R0, -1}, {I0, -1, -1},   SetSext<D0, RISCV64Lui<S0> >} } },
+    {"AUiPC",   MASK_NOREG, OPCODE_NOREG(0b11'0), 1,  { { OpClassCode::iALU,   {R0, -1},   {I0, -1, -1},   SetSext<D0, RISCV64Auipc<S0> >} } },
+    {"SPADDi",  MASK_NOREG, OPCODE_NOREG(0b00'1), 1,  { { OpClassCode::iALU, {R0, -1}, {I0, -1, -1},   Set<D0, STRAIGHT64Copy<S0> >} } },
+    {"AUiSP",   MASK_NOREG, OPCODE_NOREG(0b11'1), 1,  { { OpClassCode::iALU,   {R0, -1},   {I0, -1, -1},   SetSext<D0, RISCV64Auipc<S0> >} } }, // !! Not implemented yet
 
 
     //{ "NOP",    MASK_OPCODE,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },

@@ -64,7 +64,7 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     out->instType = GetInstType(codeWord);
     out->Reg[0] = 0;
 
-    switch (out->instType){
+    switch (out->instType) {
     case INSTTYPE_STB:
         out->Imm[0] = ExtractBits(codeWord, 6, 12, true);
         out->Reg[2] = ExtractBits(codeWord, 18, 7, false);
@@ -80,7 +80,7 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
         out->Reg[1] = ExtractBits(codeWord, 25, 7, false);
 
         // shift instructions
-        if(((codeWord >> 8) & 0b111) == 0b001 || ((codeWord >> 8) & 0b111) == 0b101)
+        if (((codeWord >> 8) & 0b111) == 0b001 || ((codeWord >> 8) & 0b111) == 0b101)
         {
             bool is64bit = (codeWord >> 7) & 1;
             out->Imm[0] = ExtractBits(codeWord, 18, is64bit ? 6 : 5, false);
@@ -90,6 +90,9 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     case INSTTYPE_TWOREG:
         out->Reg[2] = ExtractBits(codeWord, 18, 7, false);
         out->Reg[1] = ExtractBits(codeWord, 25, 7, false);
+        break;
+    case INSTTYPE_NOREG:
+        out->Imm[0] = ExtractBits(codeWord, 13, 20, true);
         break;
     default:
         THROW_RUNTIME_ERROR("decode error:");
@@ -124,6 +127,8 @@ INSTTYPE STRAIGHT64Decoder::GetInstType(const u32 codeWord)
     if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b10)  return INSTTYPE_ONEREG; // ADDi/SLTi/...
     
     if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b11)  return INSTTYPE_TWOREG;
+
+    if ((codeWord & 0x1ff) == 0x18f) return INSTTYPE_NOREG; // J/JAL/LUi/AUiPC/SPADDi/AUiSP
 
     THROW_RUNTIME_ERROR("decode error: %d = %b", codeWord, codeWord);
     return INSTTYPE_ERROR;
