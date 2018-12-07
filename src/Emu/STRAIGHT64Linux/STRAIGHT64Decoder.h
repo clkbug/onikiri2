@@ -33,7 +33,6 @@
 #define EMU_STRAIGHT64LINUX_STRAIGHT64_DECODER_H
 
 #include "Emu/STRAIGHT64Linux/STRAIGHT64Info.h"
-#include <winerror.h>
 
 namespace Onikiri
 {
