@@ -42,6 +42,7 @@
 #include "Emu/STRAIGHT64Linux/STRAIGHT64Operation.h"
 #include "Emu/STRAIGHT64Linux/STRAIGHT64Converter.h"
 #include "Emu/RISCV32Linux/RISCV32Operation.h"
+#include "Emu/RISCV64Linux/RISCV64Operation.h"
 
 using namespace std;
 using namespace boost;
@@ -51,6 +52,7 @@ using namespace Onikiri::STRAIGHT64Linux;
 using namespace Onikiri::EmulatorUtility::Operation;
 using namespace Onikiri::STRAIGHT64Linux::Operation;
 using namespace Onikiri::RISCV32Linux::Operation;
+using namespace Onikiri::RISCV64Linux::Operation;
 
 namespace {
     // オペランドのテンプレート
@@ -126,12 +128,12 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"ST.16",   MASK_STB,    0b100111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u16, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.32",   MASK_STB,    0b010111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u32, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.64",   MASK_STB,    0b110111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64Addr<S1, S2> > > }},
-    //{"Blt",     MASK_STB,    0b000011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondLessSigned<u64> > >}},
-    //{"Bge",     MASK_STB,    0b100011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualSigned<u64> > >}},
-    //{"Bltu",    MASK_STB,    0b010011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondLessUnsigned<u64> > >}},
-    //{"Bgeu",    MASK_STB,    0b110011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualUnsigned<u64> > >}},
-    //{"Beq",     MASK_STB,    0b001011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondEqual<u64> > >}},
-    //{"Bne",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV32BranchRelCond<S2, Compare<S0, S1, IntCondNotEqual<u64> > >}},
+    {"BLT",     MASK_STB,    0b000011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondLessSigned<u64> > >}},
+    {"BGE",     MASK_STB,    0b100011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualSigned<u64> > >}},
+    {"BLTu",    MASK_STB,    0b010011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondLessUnsigned<u64> > >}},
+    {"BGEu",    MASK_STB,    0b110011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualUnsigned<u64> > >}},
+    {"BEQ",     MASK_STB,    0b001011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondEqual<u64> > >}},
+    {"BNE",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondNotEqual<u64> > >}},
 
     // ecall
     { "SYSCALL", MASK_EXACT, 0b010'0001111, 2, {
@@ -162,6 +164,16 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"SLLi.32",  MASK_SFTIMM, OPCODE_SFTIMM32(0b001, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftL<u32, S0, S1, 0x1f> >}},
     {"SRLi.32",  MASK_SFTIMM, OPCODE_SFTIMM32(0b101, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftR<u32, S0, S1, 0x1f> >}},
     {"SRAi.32",  MASK_SFTIMM, OPCODE_SFTIMM32(0b101, 1), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, AShiftR<u32, S0, S1, 0x1f> >}},
+    
+    {"ADDi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u32, S0, S1> >}},
+    {"SLTi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b010), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, RISCV64Compare<S0, S1, IntCondLessSigned<u64> > >}},
+    {"SLTiu.64", MASK_ONEREG, OPCODE_ONEREG64(0b011), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, RISCV64Compare<S0, S1, IntCondLessUnsigned<u64> > >}},
+    {"XORi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b100), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitXor<u64, S0, S1> >}},
+    {"ORi.64",   MASK_ONEREG, OPCODE_ONEREG64(0b110), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitOr<u64, S0, S1> >}},
+    {"ANDi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b111), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitAnd<u64, S0, S1> >}},
+    {"SLLi.64",  MASK_SFTIMM, OPCODE_SFTIMM64(0b001, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftL<u64, S0, S1, 0x3f> >}},
+    {"SRLi.64",  MASK_SFTIMM, OPCODE_SFTIMM64(0b101, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftR<u64, S0, S1, 0x3f> >}},
+    {"SRAi.64",  MASK_SFTIMM, OPCODE_SFTIMM64(0b101, 1), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, AShiftR<u64, S0, S1, 0x3f> >}},
 
     // TwoReg
     {"ADD.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, IntAdd<u32, S0, S1> >}},
@@ -179,6 +191,22 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"DIVu.32",  MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b101), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntDivu<S0, S1> >}},
     {"REM.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b110), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntRem<S0, S1> >}},
     {"REMu.32",  MASK_TWOREG, OPCODE_TWOREG32(0b00001, 0b111), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV32IntRemu<S0, S1> >}},
+
+    {"ADD.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00000, 0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, IntAdd<u64, S0, S1> >}},
+    {"SUB.64",   MASK_TWOREG, OPCODE_TWOREG64(0b01000, 0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, IntSub<u64, S0, S1> >}},
+    {"SLL.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00000, 0b001), 1, { OpClassCode::iSFT, {R0, -1}, {R1, R2, -1}, Set<D0, LShiftL<u64, S0, S1, 0x3f> >}},
+    {"SLT.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00000, 0b010), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, Compare<S0, S1, IntCondLessSigned<u64> > >}},
+    {"SLTu.64",  MASK_TWOREG, OPCODE_TWOREG64(0b00000, 0b011), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, Compare<S0, S1, IntCondLessUnsigned<u64> > >}},
+    {"XOR.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00000, 0b100), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, BitXor<u64, S0, S1> >}},
+    {"SRL.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00000, 0b101), 1, { OpClassCode::iSFT, {R0, -1}, {R1, R2, -1}, Set<D0, LShiftR<u64, S0, S1, 0x3f> >}},
+    {"SRA.64",   MASK_TWOREG, OPCODE_TWOREG64(0b01000, 0b101), 1, { OpClassCode::iSFT, {R0, -1}, {R1, R2, -1}, Set<D0, AShiftR<u64, S0, S1, 0x3f> >}},
+    {"OR.64",    MASK_TWOREG, OPCODE_TWOREG64(0b00000, 0b110), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, BitAnd<u64, S0, S1> >}},
+    {"AND.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00000, 0b111), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, Set<D0, BitOr<u64, S0, S1> >}},
+    {"MUL.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00001, 0b000), 1, { OpClassCode::iMUL, {R0, -1}, {R1, R2, -1}, Set<D0, IntMul<u64, S0, S1> >}},
+    {"DIV.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00001, 0b100), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64IntDiv<S0, S1> >}},
+    {"DIVu.64",  MASK_TWOREG, OPCODE_TWOREG64(0b00001, 0b101), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64IntDivu<S0, S1> >}},
+    {"REM.64",   MASK_TWOREG, OPCODE_TWOREG64(0b00001, 0b110), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64IntRem<S0, S1> >}},
+    {"REMu.64",  MASK_TWOREG, OPCODE_TWOREG64(0b00001, 0b111), 1, { OpClassCode::iDIV, {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64IntRemu<S0, S1> >}},
 
 
 
