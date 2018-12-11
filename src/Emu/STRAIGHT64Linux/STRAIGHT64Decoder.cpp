@@ -123,13 +123,13 @@ INSTTYPE STRAIGHT64Decoder::GetInstType(const u32 codeWord)
 
     if (codeWord == 0b010'0001111) return INSTTYPE_ECALL;
 
-    if ((codeWord & 0x7f) == 0x1f && (codeWord >> 7 & 0x3) != 0x3) return INSTTYPE_ONEREG;     // SPLD/SPST/LD/...
+    if ((codeWord & 0x7f) == 0xf && (codeWord >> 7 & 0x3) != 0x3) return INSTTYPE_ONEREG;     // SPLD/SPST/LD/...
     if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b10)  return INSTTYPE_ONEREG; // ADDi/SLTi/...
     
     if ((codeWord & 0x7f) == 0x4f && (codeWord >> 11 & 0b11) == 0b11)  return INSTTYPE_TWOREG;
 
     if ((codeWord & 0x1ff) == 0x18f) return INSTTYPE_NOREG; // J/JAL/LUi/AUiPC/SPADDi/AUiSP
 
-    THROW_RUNTIME_ERROR("decode error: %d = %b", codeWord, codeWord);
+    THROW_RUNTIME_ERROR("decode error: %d(%x)", codeWord, codeWord);
     return INSTTYPE_ERROR;
 }
