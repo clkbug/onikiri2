@@ -132,11 +132,15 @@ void STRAIGHTSystem::AfterEmulatorGetOp(STRAIGHT64LinuxEmulator::GetOpHookParam*
         m_emuRP = STRAIGHT64Info::CalcRP(m_emuRP, 1);
     }
 
-    // Process SPADDi
+    // Process SPADDi/SPLD/SPST
     if (opInfo->isSPADDi())
     {
         m_emuSP += opInfo->GetImm(0);
         opInfo->SetImm(0, m_emuSP);
+    }
+    else if (opInfo->isSPLDST())
+    {
+        opInfo->SetImm(1, m_emuSP);
     }
 }
 
@@ -174,11 +178,15 @@ void STRAIGHTSystem::AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* 
         m_emuRP = STRAIGHT64Info::CalcRP(m_emuRP, 1);
     }
 
-    // Process SPADDi
+    // Process SPADDi/SPLD/SPST
     if (opInfo->isSPADDi())
     {
         m_emuSP += opInfo->GetImm(0);
         opInfo->SetImm(0, m_emuSP);
+    }
+    else if (opInfo->isSPLDST())
+    {
+        opInfo->SetImm(1, m_emuSP);
     }
 
 }
@@ -212,11 +220,15 @@ void STRAIGHTSystem::OnFetch(Fetcher::FetchHookParam* param)
         m_rp = STRAIGHT64Info::CalcRP(m_rp, 1);
     }
 
-    // Process SPADDi
+    // Process SPADDi/SPLD/SPST
     if (opInfo->isSPADDi())
     {
         m_sp += opInfo->GetImm(0);
         opInfo->SetImm(0, m_sp);
+    }
+    else if (opInfo->isSPLDST())
+    {
+        opInfo->SetImm(1, m_emuSP);
     }
 }
 

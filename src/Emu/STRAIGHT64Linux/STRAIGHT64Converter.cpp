@@ -129,7 +129,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"ST.8",    MASK_STB,    0b000111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u8, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.16",   MASK_STB,    0b100111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u16, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.32",   MASK_STB,    0b010111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u32, S0, STRAIGHT64Addr<S1, S2> > > }},
-    {"ST.64",   MASK_STB,    0b110111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64Addr<S1, S2> > > }},
+    {"ST.64",   MASK_STB,    0b110111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, I0, R2},   Set<D0, STRAIGHT64Store<u16, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"BLT",     MASK_STB,    0b000011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondLessSigned<u64> > >}},
     {"BGE",     MASK_STB,    0b100011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondGreaterEqualSigned<u64> > >}},
     {"BLTu",    MASK_STB,    0b010011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<S2, Compare<S0, S1, IntCondLessUnsigned<u64> > >}},
@@ -145,8 +145,17 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
 
     // OneReg
     {"NOP/RPINC",  MASK_ONEREG, OPCODE_CTRLMEM(0b000'000), 1, { OpClassCode::iNOP, {-1, -1}, {I0, -1, -1}, NoOperation}}, // フロントエンドで処理するのでRPINCもNOP扱い
-    {"SPLD.8",     MASK_ONEREG, OPCODE_CTRLMEM(0b000'100), 1, { OpClassCode::iLD,  {-1, -1}, {R0, -1, -1}, NoOperation}}, // unimplemented
-    {"SPST.8",     MASK_ONEREG, OPCODE_CTRLMEM(0b000'101), 1, { OpClassCode::iLD,  {-1, -1}, {R0, -1, -1}, NoOperation}}, // unimplemented
+    {"SPLD.8",     MASK_ONEREG, OPCODE_CTRLMEM(0b000'100), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, I1}, Set<D0, Load<s8,  STRAIGHT64AddrWithSP<S0, S1, S2> > >}},
+    {"SPLD.16",    MASK_ONEREG, OPCODE_CTRLMEM(0b001'100), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, I1}, Set<D0, Load<s16, STRAIGHT64AddrWithSP<S0, S1, S2> > >}},
+    {"SPLD.32",    MASK_ONEREG, OPCODE_CTRLMEM(0b010'100), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, I1}, Set<D0, Load<s32, STRAIGHT64AddrWithSP<S0, S1, S2> > >}},
+    {"SPLD.64",    MASK_ONEREG, OPCODE_CTRLMEM(0b011'100), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, I1}, Set<D0, Load<u64, STRAIGHT64AddrWithSP<S0, S1, S2> > >}},
+    {"SPLD.8u",    MASK_ONEREG, OPCODE_CTRLMEM(0b100'100), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, I1}, Set<D0, Load<u8,  STRAIGHT64AddrWithSP<S0, S1, S2> > >}},
+    {"SPLD.16u",   MASK_ONEREG, OPCODE_CTRLMEM(0b101'100), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, I1}, Set<D0, Load<u16, STRAIGHT64AddrWithSP<S0, S1, S2> > >}},
+    {"SPLD.32u",   MASK_ONEREG, OPCODE_CTRLMEM(0b110'100), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, I1}, Set<D0, Load<u32, STRAIGHT64AddrWithSP<S0, S1, S2> > >}},
+    {"SPST.8",     MASK_ONEREG, OPCODE_CTRLMEM(0b000'101), 1, { OpClassCode::iST,  {R0, -1}, {R1, I0, I1}, Set<D0, STRAIGHT64Store<u8,  S0, STRAIGHT64AddrWithSP<S1, S2, S3> > > }}, // unimplemented
+    {"SPST.16",    MASK_ONEREG, OPCODE_CTRLMEM(0b001'101), 1, { OpClassCode::iST,  {R0, -1}, {R1, I0, I1}, Set<D0, STRAIGHT64Store<u16, S0, STRAIGHT64AddrWithSP<S1, S2, S3> > > }}, // unimplemented
+    {"SPST.32",    MASK_ONEREG, OPCODE_CTRLMEM(0b010'101), 1, { OpClassCode::iST,  {R0, -1}, {R1, I0, I1}, Set<D0, STRAIGHT64Store<u32, S0, STRAIGHT64AddrWithSP<S1, S2, S3> > > }}, // unimplemented
+    {"SPST.64",    MASK_ONEREG, OPCODE_CTRLMEM(0b011'101), 1, { OpClassCode::iST,  {R0, -1}, {R1, I0, I1}, Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64AddrWithSP<S1, S2, S3> > > }}, // unimplemented
     {"LD.8",       MASK_ONEREG, OPCODE_CTRLMEM(0b000'110), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, -1}, Set<D0, Load<s8,  STRAIGHT64Addr<S0, S1> > >}},
     {"LD.16",      MASK_ONEREG, OPCODE_CTRLMEM(0b001'110), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, -1}, Set<D0, Load<s16, STRAIGHT64Addr<S0, S1> > >}},
     {"LD.32",      MASK_ONEREG, OPCODE_CTRLMEM(0b010'110), 1, { OpClassCode::iLD,  {R0, -1}, {R1, I0, -1}, Set<D0, Load<s32, STRAIGHT64Addr<S0, S1> > >}},

@@ -43,8 +43,11 @@ namespace Onikiri {
         public:
             explicit STRAIGHT64OpInfo(OpClass opClass) : CommonOpInfo<STRAIGHT64Info>(opClass) {}
             
+            // todo: rewrite
             bool isSPADDi() const { return strcmp(m_mnemonic, "SPADDi") == 0; }
             bool isRPINC() const { return strcmp(m_mnemonic, "NOP/RPINC") == 0; }
+            bool isSPLDST() const { return strstr(m_mnemonic, "SPLD") != nullptr || strstr(m_mnemonic, "SPST") != nullptr; }
+
             bool isSyscall() const { return m_opClass.GetCode() == OpClassCode::OpClassCode::syscall; }
             bool isSyscallBranch() const { return m_opClass.GetCode() == OpClassCode::OpClassCode::syscall_branch; }
         };

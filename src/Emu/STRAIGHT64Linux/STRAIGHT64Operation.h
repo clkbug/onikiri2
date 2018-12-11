@@ -163,7 +163,16 @@ struct STRAIGHT64Addr : public std::unary_function<EmulatorUtility::OpEmulationS
 {
     STRAIGHT64RegisterType operator()(EmulatorUtility::OpEmulationState* opState) const
     {
-        return static_cast<u32>(TSrc1()(opState) + EmulatorUtility::cast_to_signed(TSrc2()(opState)));
+        return static_cast<u64>(TSrc1()(opState) + EmulatorUtility::cast_to_signed(TSrc2()(opState)));
+    }
+};
+
+template<typename TSrc1, typename TSrc2, typename TSrc3>
+struct STRAIGHT64AddrWithSP : public std::unary_function<EmulatorUtility::OpEmulationState, STRAIGHT64RegisterType>
+{
+    STRAIGHT64RegisterType operator()(EmulatorUtility::OpEmulationState* opState) const
+    {
+        return static_cast<u64>(TSrc1()(opState) + EmulatorUtility::cast_to_signed(TSrc2()(opState)) + EmulatorUtility::cast_to_unsigned(TSrc3()(opState)));
     }
 };
 
@@ -173,7 +182,7 @@ struct STRAIGHT64Store : public std::unary_function<EmulatorUtility::OpEmulation
     STRAIGHT64RegisterType operator()(EmulatorUtility::OpEmulationState* opState) const
     {
         WriteMemory<Type>(opState, TAddr()(opState), static_cast<Type>(TValue()(opState)));
-        return static_cast<u32>(static_cast<Type>(TValue()(opState)));
+        return static_cast<u64>(static_cast<Type>(TValue()(opState)));
     }
 };
 
