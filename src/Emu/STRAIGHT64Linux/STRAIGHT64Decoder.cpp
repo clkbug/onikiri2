@@ -66,33 +66,33 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
 
     switch (out->instType) {
     case INSTTYPE_STB:
-        out->Imm[0] = ExtractBits(codeWord, 6, 12, true);
-        out->Reg[2] = ExtractBits(codeWord, 18, 7, false);
-        out->Reg[1] = ExtractBits(codeWord, 25, 7, false);
+        out->Imm[0] = ExtractBits((u64)codeWord, 6, 12, true);
+        out->Reg[2] = ExtractBits((u64)codeWord, 18, 7, false);
+        out->Reg[1] = ExtractBits((u64)codeWord, 25, 7, false);
         break;
     case INSTTYPE_ECALL:
         break;
     case INSTTYPE_RPINC:
-        out->Imm[0] = ExtractBits(codeWord, 25, 7, false);
+        out->Imm[0] = ExtractBits((u64)codeWord, 25, 7, false);
         break;
     case INSTTYPE_ONEREG:
-        out->Imm[0] = ExtractBits(codeWord, 13, 12, true);
-        out->Reg[1] = ExtractBits(codeWord, 25, 7, false);
+        out->Imm[0] = ExtractBits((u64)codeWord, 13, 12, true);
+        out->Reg[1] = ExtractBits((u64)codeWord, 25, 7, false);
 
         // shift instructions
-        if (((codeWord >> 8) & 0b111) == 0b001 || ((codeWord >> 8) & 0b111) == 0b101)
+        if ((((u64)codeWord >> 8) & 0b111) == 0b001 || (((u64)codeWord >> 8) & 0b111) == 0b101)
         {
-            bool is64bit = (codeWord >> 7) & 1;
-            out->Imm[0] = ExtractBits(codeWord, 18, is64bit ? 6 : 5, false);
+            bool is64bit = ((u64)codeWord >> 7) & 1;
+            out->Imm[0] = ExtractBits((u64)codeWord, 18, is64bit ? 6 : 5, false);
         }
 
         break;
     case INSTTYPE_TWOREG:
-        out->Reg[2] = ExtractBits(codeWord, 18, 7, false);
-        out->Reg[1] = ExtractBits(codeWord, 25, 7, false);
+        out->Reg[2] = ExtractBits((u64)codeWord, 18, 7, false);
+        out->Reg[1] = ExtractBits((u64)codeWord, 25, 7, false);
         break;
     case INSTTYPE_NOREG:
-        out->Imm[0] = ExtractBits(codeWord, 13, 20, true);
+        out->Imm[0] = ExtractBits((u64)codeWord, 12, 20, true);
         break;
     default:
         THROW_RUNTIME_ERROR("decode error:");
