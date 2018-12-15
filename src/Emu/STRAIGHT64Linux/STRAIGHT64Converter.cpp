@@ -227,7 +227,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"JAL",     MASK_NOREG, OPCODE_NOREG(0b01'0), 1,  { { OpClassCode::CALL_JUMP, {R0, -1},   {I0, -1, -1},   RISCV64CallRelUncond<D0, LShiftL<u64, S0, IntConst<u64, 1>, 0x3f > > } } },
     {"LUi",     MASK_NOREG, OPCODE_NOREG(0b10'0), 1,  { { OpClassCode::iALU, {R0, -1}, {I0, -1, -1},   SetSext<D0, RISCV64Lui<S0> >} } },
     {"AUiPC",   MASK_NOREG, OPCODE_NOREG(0b11'0), 1,  { { OpClassCode::iALU,   {R0, -1},   {I0, -1, -1},   SetSext<D0, RISCV64Auipc<S0> >} } },
-    {"SPADDi",  MASK_NOREG, OPCODE_NOREG(0b00'1), 1,  { { OpClassCode::iALU, {R0, -1}, {I0, -1, -1},   Set<D0, STRAIGHT64Copy<S0> >} } },
+    {"SPADDi",  MASK_NOREG, OPCODE_NOREG(0b00'1), 1,  { { OpClassCode::iNOP, {-1, -1}, {I0, -1, -1},   NoOperation} } },
     {"AUiSP",   MASK_NOREG, OPCODE_NOREG(0b11'1), 1,  { { OpClassCode::iALU,   {R0, -1},   {I0, -1, -1},   SetSext<D0, RISCV64Auipc<S0> >} } }, // !! Not implemented yet
 
 
