@@ -145,8 +145,8 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
 
     // OneReg
     {"NOP/RPINC",  MASK_ONEREG, OPCODE_CTRLMEM(0b000'000), 1, { OpClassCode::iNOP, {-1, -1}, {I0, -1, -1}, NoOperation}}, // フロントエンドで処理するのでRPINCもNOP扱い
-    {"JR",         MASK_ONEREG, OPCODE_CTRLMEM(0b000'001), 1, { OpClassCode::RET,  {R0, -1}, {R1, I0, -1}, RISCV64CallAbsUncond<D0, S0, S1>}}, // ToDo: set opclasscode 
-    {"JALR",       MASK_ONEREG, OPCODE_CTRLMEM(0b001'001), 1, { OpClassCode::RET,  {R0, -1}, {R1, I0, -1}, RISCV64CallAbsUncond<D0, S0, S1>}},
+    {"JR",         MASK_ONEREG, OPCODE_CTRLMEM(0b000'001), 1, { OpClassCode::RET,  {R0, -1}, {R1, I0, -1}, RISCV64CallAbsUncond<D0, S0, S1>}},
+    {"JALR",       MASK_ONEREG, OPCODE_CTRLMEM(0b001'001), 1, { OpClassCode::CALL_JUMP,  {R0, -1}, {R1, I0, -1}, RISCV64CallAbsUncond<D0, S0, S1>}},
     {"SPLD.8",     MASK_ONEREG, OPCODE_CTRLMEM(0b000'100), 1, { OpClassCode::iLD,  {R0, -1}, {I0, I1, -1}, Set<D0, Load<s8,  STRAIGHT64Addr<S0, S1> > >}},
     {"SPLD.16",    MASK_ONEREG, OPCODE_CTRLMEM(0b001'100), 1, { OpClassCode::iLD,  {R0, -1}, {I0, I1, -1}, Set<D0, Load<s16, STRAIGHT64Addr<S0, S1> > >}},
     {"SPLD.32",    MASK_ONEREG, OPCODE_CTRLMEM(0b010'100), 1, { OpClassCode::iLD,  {R0, -1}, {I0, I1, -1}, Set<D0, Load<s32, STRAIGHT64Addr<S0, S1> > >}},
