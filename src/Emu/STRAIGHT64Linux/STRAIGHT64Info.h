@@ -44,7 +44,7 @@ namespace Onikiri {
             static const int InstructionWordBitSize = 32;
             static const int MaxSrcRegCount = 3;
             static const int MaxDstRegCount = 2;
-            static const int MaxImmCount = 2;
+            static const int MaxImmCount = 3;
 
             static const int MaxLogRP = 1024 - 1;
             static const int ZeroRegIndex = 1024;
