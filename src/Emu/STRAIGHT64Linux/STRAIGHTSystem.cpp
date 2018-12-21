@@ -225,7 +225,7 @@ void STRAIGHTSystem::OnFetch(Fetcher::FetchHookParam* param)
     }
     else if (opInfo->isSPLDSTorAUiSP())
     {
-        opInfo->SetImm(1, m_emuSP);
+        opInfo->SetImm(1, m_sp);
     }
 }
 
