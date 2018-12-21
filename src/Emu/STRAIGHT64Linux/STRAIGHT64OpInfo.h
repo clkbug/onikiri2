@@ -46,7 +46,7 @@ namespace Onikiri {
             // todo: rewrite
             bool isSPADDi() const { return strcmp(m_mnemonic, "SPADDi") == 0; }
             bool isRPINC() const { return strcmp(m_mnemonic, "NOP/RPINC") == 0; }
-            bool isSPLDST() const { return strstr(m_mnemonic, "SPLD") != nullptr || strstr(m_mnemonic, "SPST") != nullptr; }
+            bool isSPLDSTorAUiSP() const { return strstr(m_mnemonic, "SPLD") != nullptr || strstr(m_mnemonic, "SPST") != nullptr || strcmp(m_mnemonic, "AUiSP") == 0; }
 
             bool isSyscall() const { return m_opClass.GetCode() == OpClassCode::OpClassCode::syscall; }
             bool isSyscallBranch() const { return m_opClass.GetCode() == OpClassCode::OpClassCode::syscall_branch; }

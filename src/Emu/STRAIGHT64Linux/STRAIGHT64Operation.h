@@ -137,6 +137,18 @@ struct STRAIGHT64FCompare : public std::unary_function<OpEmulationState*, Type>
     }
 };
 
+// Add Upper Immidiate SP
+template<typename TSrc1, typename Tsrc2>
+struct STRAIGHT64Auisp : public std::unary_function<OpEmulationState, RegisterType>
+{
+    RISCV64RegisterType operator()(OpEmulationState* opState) const
+    {
+        // current SP value that is told by STRAIGHTSystem
+        RISCV64RegisterType SP = TSrc2()(opState);
+        return (TSrc1()(opState) << 12) + SP;
+    }
+};
+
 // Load upper immediate
 template<typename TSrc1>
 struct STRAIGHT64Lui : public std::unary_function<OpEmulationState, RegisterType>
