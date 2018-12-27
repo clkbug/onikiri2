@@ -674,7 +674,7 @@ namespace Onikiri {
                 RISCV64AtomicStore<Type, Operation, TAddr>(opState);
             }
 
-            void RISCV64SyscallSetArg(EmulatorUtility::OpEmulationState* opState)
+            inline void RISCV64SyscallSetArg(EmulatorUtility::OpEmulationState* opState)
             {
                 EmulatorUtility::SyscallConvIF* syscallConv = opState->GetProcessState()->GetSyscallConv();
                 syscallConv->SetArg(0, SrcOperand<0>()(opState));
@@ -684,7 +684,7 @@ namespace Onikiri {
             }
 
             // invoke syscall, get result&error and branch if any
-            void RISCV64SyscallCore(EmulatorUtility::OpEmulationState* opState)
+            inline void RISCV64SyscallCore(EmulatorUtility::OpEmulationState* opState)
             {
                 EmulatorUtility::SyscallConvIF* syscallConv = opState->GetProcessState()->GetSyscallConv();
                 syscallConv->SetArg(3, SrcOperand<1>()(opState));
