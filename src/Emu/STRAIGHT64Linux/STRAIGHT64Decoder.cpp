@@ -112,10 +112,16 @@ INSTTYPE STRAIGHT64Decoder::GetInstType(const u32 codeWord)
 {
     switch (codeWord & 0x1f)
     {
-    case 0b000111:
-    case 0b100111:
-    case 0b010111:
-    case 0b110111:
+    case 0b000111: // ST.8
+    case 0b100111: // ST.16
+    case 0b010111: // ST.32
+    case 0b110111: // ST.64
+    case 0b000011: // Blt
+    case 0b100011: // Bge
+    case 0b010011: // Bltu
+    case 0b110011: // Bgeu
+    case 0b001011: // Beq
+    case 0b101011: // Bne
         return INSTTYPE_STB;
     }
 
