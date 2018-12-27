@@ -131,12 +131,12 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"ST.16",   MASK_STB,    0b100111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, R2, I0},   Set<D0, STRAIGHT64Store<u16, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.32",   MASK_STB,    0b010111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, R2, I0},   Set<D0, STRAIGHT64Store<u32, S0, STRAIGHT64Addr<S1, S2> > > }},
     {"ST.64",   MASK_STB,    0b110111,      1,   { OpClassCode::iST,     {R0, -1},   {R1, R2, I0},   Set<D0, STRAIGHT64Store<u64, S0, STRAIGHT64Addr<S1, S2> > > }},
-    {"BLT",     MASK_STB,    0b000011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondLessSigned<u64> > >}},
-    {"BGE",     MASK_STB,    0b100011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondGreaterEqualSigned<u64> > >}},
-    {"BLTu",    MASK_STB,    0b010011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondLessUnsigned<u64> > >}},
-    {"BGEu",    MASK_STB,    0b110011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondGreaterEqualUnsigned<u64> > >}},
-    {"BEQ",     MASK_STB,    0b001011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondEqual<u64> > >}},
-    {"BNE",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {R0, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondNotEqual<u64> > >}},
+    {"BLT",     MASK_STB,    0b000011,      1,   { OpClassCode::iBC,     {-1, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondLessSigned<u64> > >}},
+    {"BGE",     MASK_STB,    0b100011,      1,   { OpClassCode::iBC,     {-1, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondGreaterEqualSigned<u64> > >}},
+    {"BLTu",    MASK_STB,    0b010011,      1,   { OpClassCode::iBC,     {-1, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondLessUnsigned<u64> > >}},
+    {"BGEu",    MASK_STB,    0b110011,      1,   { OpClassCode::iBC,     {-1, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondGreaterEqualUnsigned<u64> > >}},
+    {"BEQ",     MASK_STB,    0b001011,      1,   { OpClassCode::iBC,     {-1, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondEqual<u64> > >}},
+    {"BNE",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {-1, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 1>, 0x3f >, Compare<S0, S1, IntCondNotEqual<u64> > >}},
 
     // ecall
     { "SYSCALL", MASK_EXACT, 0b010'0001111, 2, {
