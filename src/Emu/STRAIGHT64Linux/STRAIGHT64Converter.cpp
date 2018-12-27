@@ -87,7 +87,8 @@ namespace {
 
     const u32 MASK_STB = 0x3f; // Store/Branchは最下位6bitがOPCODE
     const u32 MASK_ONEREG = 0x1fff; // 最下位13bitを見る
-    const u32 MASK_SFTIMM = 0x183ffff;
+    const u32 MASK_SFTIMM32 = 0x183ffff; // 最下位18bitに加えて2bitが0のはず
+    const u32 MASK_SFTIMM64 = 0x103ffff; // 最下位18bitに加えて1bitが0のはず
     const u32 MASK_TWOREG = 0x3ffff; // 最下位18bit
     const u32 MASK_NOREG = 0xfff; // 最下位12bit
 }
@@ -174,9 +175,9 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"XORi.32",  MASK_ONEREG, OPCODE_ONEREG32(0b100), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, SetSext<D0, BitXor<u32, S0, S1> >}},
     {"ORi.32",   MASK_ONEREG, OPCODE_ONEREG32(0b110), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, SetSext<D0, BitOr<u32, S0, S1> >}},
     {"ANDi.32",  MASK_ONEREG, OPCODE_ONEREG32(0b111), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, SetSext<D0, BitAnd<u32, S0, S1> >}},
-    {"SLLi.32",  MASK_SFTIMM, OPCODE_SFTIMM32(0b001, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, SetSext<D0, LShiftL<u32, S0, S1, 0x1f> >}},
-    {"SRLi.32",  MASK_SFTIMM, OPCODE_SFTIMM32(0b101, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, SetSext<D0, LShiftR<u32, S0, S1, 0x1f> >}},
-    {"SRAi.32",  MASK_SFTIMM, OPCODE_SFTIMM32(0b101, 1), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, SetSext<D0, AShiftR<u32, S0, S1, 0x1f> >}},
+    {"SLLi.32",  MASK_SFTIMM32, OPCODE_SFTIMM32(0b001, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, SetSext<D0, LShiftL<u32, S0, S1, 0x1f> >}},
+    {"SRLi.32",  MASK_SFTIMM32, OPCODE_SFTIMM32(0b101, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, SetSext<D0, LShiftR<u32, S0, S1, 0x1f> >}},
+    {"SRAi.32",  MASK_SFTIMM32, OPCODE_SFTIMM32(0b101, 1), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, SetSext<D0, AShiftR<u32, S0, S1, 0x1f> >}},
     
     {"ADDi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u32, S0, S1> >}},
     {"SLTi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b010), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, RISCV64Compare<S0, S1, IntCondLessSigned<u64> > >}},
@@ -184,9 +185,9 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"XORi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b100), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitXor<u64, S0, S1> >}},
     {"ORi.64",   MASK_ONEREG, OPCODE_ONEREG64(0b110), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitOr<u64, S0, S1> >}},
     {"ANDi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b111), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitAnd<u64, S0, S1> >}},
-    {"SLLi.64",  MASK_SFTIMM, OPCODE_SFTIMM64(0b001, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftL<u64, S0, S1, 0x3f> >}},
-    {"SRLi.64",  MASK_SFTIMM, OPCODE_SFTIMM64(0b101, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftR<u64, S0, S1, 0x3f> >}},
-    {"SRAi.64",  MASK_SFTIMM, OPCODE_SFTIMM64(0b101, 1), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, AShiftR<u64, S0, S1, 0x3f> >}},
+    {"SLLi.64",  MASK_SFTIMM64, OPCODE_SFTIMM64(0b001, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftL<u64, S0, S1, 0x3f> >}},
+    {"SRLi.64",  MASK_SFTIMM64, OPCODE_SFTIMM64(0b101, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, LShiftR<u64, S0, S1, 0x3f> >}},
+    {"SRAi.64",  MASK_SFTIMM64, OPCODE_SFTIMM64(0b101, 1), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, Set<D0, AShiftR<u64, S0, S1, 0x3f> >}},
 
     // TwoReg
     {"ADD.32",   MASK_TWOREG, OPCODE_TWOREG32(0b00000, 0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, R2, -1}, SetSext<D0, IntAdd<u32, S0, S1> >}},
