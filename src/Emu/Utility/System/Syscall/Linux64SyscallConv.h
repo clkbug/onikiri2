@@ -96,11 +96,13 @@ namespace Onikiri {
             virtual void syscall_exit(EmulatorUtility::OpEmulationState* opState);
 
             virtual void syscall_open(EmulatorUtility::OpEmulationState* opState);
+            virtual void syscall_openat(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_close(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_read(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_write(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_readv(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_writev(EmulatorUtility::OpEmulationState* opState);
+            virtual void syscall_readlinkat(EmulatorUtility::OpEmulationState* opState);
 
             virtual void syscall_lseek(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_unlink(EmulatorUtility::OpEmulationState* opState);
@@ -111,6 +113,7 @@ namespace Onikiri {
             virtual void syscall_mremap(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_mprotect(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_fcntl(EmulatorUtility::OpEmulationState* opState);
+            virtual void syscall_sigaction(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_uname(EmulatorUtility::OpEmulationState* opState);
 
             virtual void syscall_brk(EmulatorUtility::OpEmulationState* opState);

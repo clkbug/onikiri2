@@ -243,6 +243,11 @@ void VirtualSystem::SetInitialWorkingDir(const boost::filesystem::path& dir)
     m_cwd = dir;
 }
 
+void VirtualSystem::SetCommandFileName(const boost::filesystem::path& absCmdFileName)
+{
+    m_absCmdFileName = absCmdFileName;
+}
+
 bool VirtualSystem::AddFDMap(int targetFD, int hostFD, bool autoclose)
 {
     if (!m_fdConv.AddMap(targetFD, hostFD))
@@ -380,6 +385,24 @@ int VirtualSystem::Close(int fd)
     }
 
     return result;
+}
+
+// readlink at
+int VirtualSystem::ReadLinkAt(int targetFD, const char* pathname, void *buffer, unsigned int count) {
+    if (string("/proc/self/exe") == pathname) {
+        if (m_absCmdFileName.size() >= count) {
+            return -1;
+        }
+        ::strncpy(static_cast<char*>(buffer), m_absCmdFileName.string().c_str(), sizeof(char)*count-1);
+        return 0;
+    }
+    else {
+        THROW_RUNTIME_ERROR(
+            "'readlinkat' does not support reading other than '/proc/self/exe', "
+            "but '%s' is specified.", pathname
+        );
+        return -1;
+    }
 }
 
 int VirtualSystem::FStat(int fd, HostStat* buffer)

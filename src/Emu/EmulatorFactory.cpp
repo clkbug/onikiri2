@@ -34,6 +34,7 @@
 #include "Emu/AlphaLinux/AlphaLinuxEmulator.h"
 #include "Emu/PPC64Linux/PPC64LinuxEmulator.h"
 #include "Emu/RISCV32Linux/RISCV32LinuxEmulator.h"
+#include "Emu/RISCV64Linux/RISCV64LinuxEmulator.h"
 #include "Emu/STRAIGHT64Linux/STRAIGHT64LinuxEmulator.h"
 
 using namespace Onikiri;
@@ -57,6 +58,9 @@ EmulatorIF* EmulatorFactory::Create(const String& systemName, SystemIF* simSyste
     }
     else if (systemName == "RISCV32Linux") {
         return new RISCV32Linux::RISCV32LinuxEmulator(simSystem);
+    }
+    else if (systemName == "RISCV64Linux") {
+        return new RISCV64Linux::RISCV64LinuxEmulator(simSystem);
     }
     else if (systemName == "STRAIGHT64Linux") {
         return new STRAIGHT64Linux::STRAIGHT64LinuxEmulator(simSystem);

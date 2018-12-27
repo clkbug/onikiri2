@@ -46,6 +46,8 @@ namespace Operation {
 u64 UnsignedMulHigh64(u64 lhs, u64 rhs);
 // high-order 64 bits of the 128-bit product of signed lhs and rhs
 s64 SignedMulHigh64(s64 lhs, s64 rhs);
+// high-order 64 bits of the 128-bit product of signed lhs and unsigned rhs
+s64 SignedUnsignedMulHigh64(s64 lhs, u64 rhs);
 
 typedef u64 RegisterType;
 
@@ -669,10 +671,22 @@ struct IntSMulh64 : public std::unary_function<EmulatorUtility::OpEmulationState
     s64 operator()(OpEmulationState* opState) const
     {
         s64 lhs = static_cast<s64>(TSrc1()(opState));
-        s64 rhs = static_cast<s64>(TSrc2()(opState));
+        s64 rhs = TSrc2()(opState);
 
         return SignedMulHigh64(lhs, rhs);
     }
+};
+
+template <typename TSrc1, typename TSrc2>
+struct IntSUMulh64 : public std::unary_function<EmulatorUtility::OpEmulationState, u64>
+{
+	s64 operator()(OpEmulationState* opState) const
+	{
+		s64 lhs = static_cast<s64>(TSrc1()(opState));
+		u64 rhs = static_cast<s64>(TSrc2()(opState));
+
+		return SignedUnsignedMulHigh64(lhs, rhs);
+	}
 };
 
 template <typename Type1, typename Type2, typename TSrc1, typename TSrc2>
