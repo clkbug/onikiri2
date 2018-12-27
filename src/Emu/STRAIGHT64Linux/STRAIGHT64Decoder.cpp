@@ -1,4 +1,4 @@
-// 
+﻿// 
 // Copyright (c) 2005-2008 Kenichi Watanabe.
 // Copyright (c) 2005-2008 Yasuhiro Watari.
 // Copyright (c) 2005-2008 Hironori Ichibayashi.
@@ -94,8 +94,9 @@ void STRAIGHT64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     case INSTTYPE_NOREG:
         out->Imm[0] = ExtractBits(static_cast<u64>(codeWord), 12, 20, true);
         break;
-    default:
-        THROW_RUNTIME_ERROR("decode error:");
+    default:;
+        // 投機的フェッチなどにより変な命令が来ることはある
+        // そのため、THROW_RUNTIME_ERRORは不適切
     }
 
 
@@ -136,6 +137,7 @@ INSTTYPE STRAIGHT64Decoder::GetInstType(const u32 codeWord)
 
     if ((codeWord & 0x1ff) == 0x18f) return INSTTYPE_NOREG; // J/JAL/LUi/AUiPC/SPADDi/AUiSP
 
-    THROW_RUNTIME_ERROR("decode error: %d(%x)", codeWord, codeWord);
+    // 投機的フェッチなどにより変な命令が来ることはある
+    // そのため、THROW_RUNTIME_ERRORは不適切
     return INSTTYPE_ERROR;
 }
