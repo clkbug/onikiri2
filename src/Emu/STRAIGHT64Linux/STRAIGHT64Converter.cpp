@@ -179,7 +179,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"SRLi.32",  MASK_SFTIMM32, OPCODE_SFTIMM32(0b101, 0), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, SetSext<D0, LShiftR<u32, S0, S1, 0x1f> >}},
     {"SRAi.32",  MASK_SFTIMM32, OPCODE_SFTIMM32(0b101, 1), 1, { OpClassCode::iSFT, {R0, -1}, {R1, I0, -1}, SetSext<D0, AShiftR<u32, S0, S1, 0x1f> >}},
     
-    {"ADDi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u32, S0, S1> >}},
+    {"ADDi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b000), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u64, S0, S1> >}},
     {"SLTi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b010), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, RISCV64Compare<S0, S1, IntCondLessSigned<u64> > >}},
     {"SLTiu.64", MASK_ONEREG, OPCODE_ONEREG64(0b011), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, RISCV64Compare<S0, S1, IntCondLessUnsigned<u64> > >}},
     {"XORi.64",  MASK_ONEREG, OPCODE_ONEREG64(0b100), 1, { OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, BitXor<u64, S0, S1> >}},
