@@ -206,6 +206,14 @@ static struct {
 
 void STRAIGHT64LinuxSyscallConv::Execute(OpEmulationState* opState)
 {
+    // Ad-hoc putchar systemcall
+    if( GetArg( 0 ) == 'putc' ) {
+        std::cout << (unsigned char)GetArg(1); // writes the character, cast to an unsigned char, to stdout.
+        opState->SetTakenPC(opState->GetPC() + 4);
+        opState->SetTaken(true);
+        SetResult(true, (unsigned char)GetArg(1)); // returns the character written as an unsigned char cast to an int
+        return;
+    }
 #ifdef SYSCALL_DEBUG 
     //static std::ofstream log("syscall.log", std::ios_base::out | std::ios_base::trunc);
     auto& log = std::cout;
