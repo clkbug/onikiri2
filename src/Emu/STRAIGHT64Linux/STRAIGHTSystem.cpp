@@ -139,7 +139,15 @@ void STRAIGHTSystem::AfterEmulatorGetOp(STRAIGHT64LinuxEmulator::GetOpHookParam*
     }
     else if (opInfo->isSPLDSTorAUiSP())
     {
-        opInfo->SetImm(1, m_emuSP);
+        if (opInfo->GetImmNum() == 3) {
+            ASSERT(opInfo->isSPST());
+            // ソースレジスタがZeroRegであるため、即値扱いのものが一個多くて後ろにずれる
+            // Imm0が0、Imm1がOffset、Imm2がSPの値となる
+            opInfo->SetImm(2, m_emuSP);
+        } else {
+            // Imm0が即値、Imm1がSPの値
+            opInfo->SetImm(1, m_emuSP);
+        }
     }
 }
 
@@ -184,7 +192,15 @@ void STRAIGHTSystem::AfterForwardEmulatorGetOp(ForwardEmulator::GetOpHookParam* 
     }
     else if (opInfo->isSPLDSTorAUiSP())
     {
-        opInfo->SetImm(1, m_emuSP);
+        if (opInfo->GetImmNum() == 3) {
+            ASSERT(opInfo->isSPST());
+            // ソースレジスタがZeroRegであるため、即値扱いのものが一個多くて後ろにずれる
+            // Imm0が0、Imm1がOffset、Imm2がSPの値となる
+            opInfo->SetImm(2, m_emuSP);
+        } else {
+            // Imm0が即値、Imm1がSPの値
+            opInfo->SetImm(1, m_emuSP);
+        }
     }
 
 }
@@ -225,7 +241,15 @@ void STRAIGHTSystem::OnFetch(Fetcher::FetchHookParam* param)
     }
     else if (opInfo->isSPLDSTorAUiSP())
     {
-        opInfo->SetImm(1, m_sp);
+        if (opInfo->GetImmNum() == 3) {
+            ASSERT(opInfo->isSPST());
+            // ソースレジスタがZeroRegであるため、即値扱いのものが一個多くて後ろにずれる
+            // Imm0が0、Imm1がOffset、Imm2がSPの値となる
+            opInfo->SetImm(2, m_sp);
+        } else {
+            // Imm0が即値、Imm1がSPの値
+            opInfo->SetImm(1, m_sp);
+        }
     }
 }
 
