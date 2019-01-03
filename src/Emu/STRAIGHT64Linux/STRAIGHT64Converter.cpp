@@ -235,6 +235,10 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"AUiSP",   MASK_NOREG, OPCODE_NOREG(0b11'1), 1,  { { OpClassCode::iALU,   {R0, -1},   {I0, I1, -1},   Set<D0, STRAIGHT64Auisp<S0, S1> >} } },
 
 
+    // pseudo instruction (special case of ADDi.64)
+    {"RMOV", 0b0000000'111111111111'1111111111111, OPCODE_ONEREG64(0b000), 1, {OpClassCode::iMOV, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u64, S0, S1> >}},
+
+
     //{ "NOP",    MASK_OPCODE,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
     //{ "SYSCALL",MASK_OPCODE, OPCODE(1),     2,   {
     //    { OpClassCode::syscall,        { R0, -1 }, { I0,  1,  2 }, STRAIGHT64SyscallSetArg },
