@@ -237,6 +237,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
 
     // pseudo instruction (special case of ADDi.64)
     {"RMOV", 0b0000000'111111111111'1111111111111, OPCODE_ONEREG64(0b000), 1, {OpClassCode::iMOV, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u64, S0, S1> >}},
+    {"ADDi.64", MASK_EXACT, OPCODE_ONEREG64(0b000), 1, {OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u64, S0, S1> >}}, // more specific case: ADDi.64 $Zero, 0
 
 
     //{ "NOP",    MASK_OPCODE,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
