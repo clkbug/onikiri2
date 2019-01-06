@@ -89,10 +89,7 @@
               <Fetcher    Name = "fetcher" />
               <Renamer    Name = "renamer" />
               <Dispatcher Name = "dispatcher" />
-              <Scheduler  Name = "intScheduler"   To="scheduler"/>
-              <Scheduler  Name = "floatScheduler" To="scheduler"/>
-              <Scheduler  Name = "memScheduler"   To="scheduler"/>
-              <Scheduler  Name = "addrScheduler"  To="scheduler"/>
+              <Scheduler  Name = "unifiedScheduler"   To="scheduler"/>
               <Retirer    Name = "retirer" />
               <LatPred    Name = "latPred" />
               <CacheSystem Name = "cacheSystem" />
@@ -123,7 +120,7 @@
               <InorderList      Name = "inorderList" />
               <CheckpointMaster Name = "checkpointMaster" />
             </Recoverer>
-            
+
             <MemOrderManager Name = "memOrderManager" Count="ThreadCount">
               <Core        Name = "core" />
               <CacheSystem Name = "cacheSystem" />
@@ -136,8 +133,8 @@
 
             <LatPred Name = "latPred" Count="CoreCount">
               <Connection
-                  Name = "optimisticHitMissPred"
-                  To   = "hitMissPred"
+                Name = "optimisticHitMissPred"
+                To   = "hitMissPred"
               />
               <Core             Name = "core" />
               <ExecLatencyInfo  Name = "execLatencyInfo"/>
@@ -215,7 +212,7 @@
             </MemExecUnit>
 
             <!-- Cache, Memory and Prefetcher -->
-            
+
             <!-- 
               All resources access caches through CacheSystem.
             -->
@@ -339,8 +336,8 @@
               -->
               <Connection Name="storeSetMemDepPred" To="memDepPred"/>
             </MemDepPred>
-            
-            <!-- Register dependency predictor(s) -->            
+
+            <!-- Register dependency predictor(s) -->
             <RMT Name="rmt" Count="ThreadCount">
               <Core             Name = "core" />
               <RegisterFile     Name = "registerFile" />
@@ -361,7 +358,7 @@
             </OpCodeDispatchSteerer>
 
             <!-- Schedule -->
-            <Scheduler Name= "intScheduler" Count="CoreCount">
+            <Scheduler Name= "unifiedScheduler" Count="CoreCount">
               <Core         Name = "core"  />
               <Thread       Name = "thread"  />
               <IssueSelector Name = "issueSelector" To = "selector" />
@@ -370,31 +367,13 @@
               <Connection   Name = "exIntMUL"   To = "execUnits" />
               <Connection   Name = "exIntDIV"   To = "execUnits" />
               <Connection   Name = "exSYS"      To = "execUnits" />
-            </Scheduler>
-
-            <Scheduler Name= "floatScheduler" Count="CoreCount">
-              <Core         Name = "core"  />
-              <Thread       Name = "thread"  />
-              <IssueSelector Name = "issueSelector" To = "selector" />
               <Connection   Name = "exFloatBC"  To = "execUnits" />
               <Connection   Name = "exFPAdd"    To = "execUnits" />
               <Connection   Name = "exFPMul"    To = "execUnits" />
               <Connection   Name = "exFPDIV"    To = "execUnits" />
               <Connection   Name = "exFPELEM"   To = "execUnits" />
-            </Scheduler>
-
-            <Scheduler Name= "memScheduler" Count="CoreCount">
-              <Core         Name = "core"  />
-              <Thread       Name = "thread"  />
-              <IssueSelector Name = "issueSelector" To = "selector" />
               <Connection   Name = "exIFCONV" To = "execUnits" />
               <Connection   Name = "exMEM"    To = "execUnits" />
-            </Scheduler>
-
-            <Scheduler Name= "addrScheduler" Count = "CoreCount">
-              <Core         Name = "core"  />
-              <Thread       Name = "thread"  />
-              <IssueSelector Name = "issueSelector" To = "selector" />
               <Connection   Name = "exAddr"     To = "execUnits"/>
             </Scheduler>
 
@@ -429,7 +408,7 @@
         <!-- Parameter -->
         <Parameter>
           <!-- ForwardEmulator -->
-          <ForwardEmulator 
+          <ForwardEmulator
             Name ="forwardEmulator"
             Enable="1"
           >
@@ -532,14 +511,14 @@
             Capacity = "128"
             RemoveOpsOnCommit = "0"
           />
-          
+
           <!-- Recoverer -->
           <Recoverer
             Name = "recoverer"
-				    BranchPredRecoveryLatency = "0"
-				    ExceptionRecoverylatency = "0"
+            BranchPredRecoveryLatency = "0"
+            ExceptionRecoverylatency = "0"
           />
-          
+
           <!-- ExecUnit -->
           <ExecUnit           Name = "exIntDIV"   Port = "1"  Code = "iDIV" />
           <ExecUnit           Name = "exSYS"      Port = "1"  Code = "syscall,syscall_branch" />
@@ -554,7 +533,7 @@
           <ExecUnit           Name = "exFPELEM"   Port = "1"  Code = "fELEM" />
           <PipelinedExecUnit  Name = "exIFCONV"   Port = "1"  Code = "ifCONV" />
           <MemExecUnit        Name = "exMEM"      Port = "2"  Code = "iLD,iST,fLD,fST"
-            FloatConversionLatency = "1" 
+                              FloatConversionLatency = "1"
           />
 
           <!-- 
@@ -602,11 +581,11 @@
           <RoundRobinFetchThreadSteerer
             Name = "roundRobinFetchThreadSteerer"
           />
-          
+
           <IcountFetchThreadSteerer
             Name = "icountFetchThreadSteerer"
           />
-          
+
           <!-- Renamer -->
           <Renamer
             Name = "renamer"
@@ -630,44 +609,14 @@
             RemovePolicy : [ Core, Remove, Retain, RemoveAfterFinish ]
           -->
           <Scheduler
-            Name = "intScheduler"
+            Name = "unifiedScheduler"
             Index = "0"
-            IssueWidth = "2"
+            IssueWidth = "8"
             IssueLatency = "4"
             WritebackLatency ="2"
             RemovePolicy = "Core"
-            CommunicationLatency = "0,0,0,0"
-            WindowCapacity = "32"
-          />
-          <Scheduler
-            Name = "floatScheduler"
-            Index = "1"
-            IssueWidth = "2"
-            IssueLatency = "4"
-            WritebackLatency ="2"
-            RemovePolicy = "Core"
-            CommunicationLatency = "0,0,0,0"
-            WindowCapacity = "16"
-          />
-          <Scheduler
-            Name = "memScheduler"
-            Index = "2"
-            IssueWidth = "2"
-            IssueLatency = "4"
-            WritebackLatency ="2"
-            RemovePolicy = "Core"
-            CommunicationLatency = "0,0,0,0"
-            WindowCapacity = "16"
-          />
-          <Scheduler
-            Name = "addrScheduler"
-            Index = "3"
-            IssueWidth = "2"
-            IssueLatency = "4"
-            WritebackLatency ="2"
-            RemovePolicy = "Core"
-            CommunicationLatency = "0,0,0,0"
-            WindowCapacity = "16"
+            CommunicationLatency = "0"
+            WindowCapacity = "64"
           />
 
           <!-- Issue selctors -->
@@ -680,7 +629,7 @@
           <InorderIssueSelector Name = "inorderIssueSelector">
           </InorderIssueSelector>
 
-          
+
           <!-- Retirer -->
           <Retirer
             Name = "retirer"
@@ -694,7 +643,7 @@
 
 
           <!-- BPred -->
-          <BPred 
+          <BPred
             Name="bPred"
             Perfect="0"
           />
@@ -869,13 +818,13 @@
             <Latency Code="iBC" Latency="1" />
             <Latency Code="iBU" Latency="1" />
             <Latency Code="iJUMP" Latency="1" />
-            <Latency Code="iLD" Latency="3" />
-            <Latency Code="iST" Latency="3" />
+            <Latency Code="iLD" Latency="4" />
+            <Latency Code="iST" Latency="4" />
             <Latency Code="iIMM" Latency="1" />
             <Latency Code="iMOV" Latency="1" />
             <Latency Code="iALU" Latency="1" />
             <Latency Code="iSFT" Latency="1" />
-            <Latency Code="iMUL" Latency="7" />
+            <Latency Code="iMUL" Latency="3" />
             <Latency Code="iDIV" Latency="14" />
             <Latency Code="iBYTE" Latency="1" />
             <Latency Code="fBC"   Latency="2" />
