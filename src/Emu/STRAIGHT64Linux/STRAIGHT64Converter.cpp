@@ -139,7 +139,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"BNE",     MASK_STB,    0b101011,      1,   { OpClassCode::iBC,     {-1, -1},   {R1, R2, I0},   RISCV64BranchRelCond<LShiftL<u64, S2, IntConst<u64, 2>, 0x3f >, Compare<S0, S1, IntCondNotEqual<u64> > >}},
 
     // ecall
-    { "SYSCALL", MASK_EXACT, 0b010'0001111, 2, {
+    { "ECALL", MASK_EXACT, 0b010'0001111, 2, {
         { OpClassCode::syscall,        { R0, -1 }, { 1,  2,  3 },  STRAIGHT64SyscallSetArg },
         { OpClassCode::syscall_branch, { R0, -1 }, { R0,  4,  5 }, STRAIGHT64SyscallCore },
     } },
