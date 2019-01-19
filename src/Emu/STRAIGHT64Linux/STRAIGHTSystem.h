@@ -75,7 +75,7 @@ namespace Onikiri
             END_RESOURCE_MAP()
 
         private:
-            static const u64 INITIAL_SP = 0x01000000;
+            static const u64 INITIAL_SP = 0x0b'000'000;
             
             u64 m_rp;
             u64 m_emuRP; // RP for Emulator & ForwardEmulator
