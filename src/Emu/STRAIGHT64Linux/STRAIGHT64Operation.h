@@ -83,7 +83,6 @@ struct STRAIGHT64IntConst : public std::unary_function<OpEmulationState*, Type>
 };
 
 
-
 // Modulo
 template <typename Type, typename TSrc1, typename TSrc2>
 struct STRAIGHT64IntMod : public std::unary_function<OpEmulationState*, Type>

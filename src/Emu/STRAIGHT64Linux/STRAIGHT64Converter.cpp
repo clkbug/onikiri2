@@ -91,10 +91,13 @@ namespace {
     const u32 MASK_SFTIMM64 = 0x103ffff; // 最下位18bitに加えて1bitが0のはず
     const u32 MASK_TWOREG = 0x3ffff; // 最下位18bit
     const u32 MASK_NOREG = 0xfff; // 最下位12bit
+    const u32 MASK_FLOAT = 0x3ffff; // 最下位18bit
 }
 
 #define STRAIGHT64_DSTOP(n) STRAIGHT64DstOperand<n>
 #define STRAIGHT64_SRCOP(n) STRAIGHT64SrcOperand<n>
+#define STRAIGHT64_SRCOPFLOAT(n) AsFP<f32, Cast<u32, SrcOperand<n> > > // lower 32-bit holds float value
+#define STRAIGHT64_SRCOPDOUBLE(n) AsFP<f64, SrcOperand<n> >
 
 #define OPCODE_ONEREG32(opcode) (((opcode)<<8) | 0b10'000'0'1001111)
 #define OPCODE_ONEREG64(opcode) (((opcode)<<8) | 0b10'000'1'1001111)
@@ -110,12 +113,24 @@ namespace {
 
 #define OPCODE_NOREG(opcode) (0b00'011'0001111 | (opcode << 9))
 
+                                  //    ' RM'b'
+#define OPCODE_FLOAT32(opcode) (0b00'000'0'1001111 | (opcode<<13))
+#define OPCODE_FLOAT64(opcode) (0b00'000'1'1001111 | (opcode<<13))
+
 #define D0 STRAIGHT64_DSTOP(0)
 #define D1 STRAIGHT64_DSTOP(1)
 #define S0 STRAIGHT64_SRCOP(0)
 #define S1 STRAIGHT64_SRCOP(1)
 #define S2 STRAIGHT64_SRCOP(2)
 #define S3 STRAIGHT64_SRCOP(3)
+#define SF0 STRAIGHT64_SRCOPFLOAT(0)
+#define SF1 STRAIGHT64_SRCOPFLOAT(1)
+#define SF2 STRAIGHT64_SRCOPFLOAT(2)
+#define SF3 STRAIGHT64_SRCOPFLOAT(3)
+#define SD0 STRAIGHT64_SRCOPDOUBLE(0)
+#define SD1 STRAIGHT64_SRCOPDOUBLE(1)
+#define SD2 STRAIGHT64_SRCOPDOUBLE(2)
+#define SD3 STRAIGHT64_SRCOPDOUBLE(3)
 
 // 投機的にフェッチされたときにはエラーにせず，実行されたときにエラーにする
 // syscallにすることにより，直前までの命令が完了してから実行される (実行は投機的でない)
@@ -240,67 +255,57 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     {"ADDi.64", MASK_EXACT, OPCODE_ONEREG64(0b000), 1, {OpClassCode::iALU, {R0, -1}, {R1, I0, -1}, Set<D0, IntAdd<u64, S0, S1> >}}, // more specific case: ADDi.64 $Zero, 0
 
 
-    //{ "NOP",    MASK_OPCODE,  OPCODE(0),     1,   { { OpClassCode::iNOP,  { -1, -1 }, { -1, -1, -1 }, NoOperation } } },
-    //{ "SYSCALL",MASK_OPCODE, OPCODE(1),     2,   {
-    //    { OpClassCode::syscall,        { R0, -1 }, { I0,  1,  2 }, STRAIGHT64SyscallSetArg },
-    //    { OpClassCode::syscall_branch, { R0, -1 }, { R0,  3,  4 }, STRAIGHT64SyscallCore },
-    //} },
-    //{ "J",      MASK_OPCODE, OPCODE(3),     1,  { { OpClassCode::iJUMP,  { R0, -1 }, { I0, -1, -1 }, Sequence2<BranchRelUncond<S0>, Set<D0, IntConst<u64, 0> > > } } },
-    //{ "JR",     MASK_OPCODE, OPCODE(4),     1,  { { OpClassCode::iJUMP,  { R0, -1 }, { R1, -1, -1 }, Sequence2<BranchAbsUncond<S0>, Set<D0, IntConst<u64, 0> > > } } },
-    //{ "JAL",    MASK_OPCODE, OPCODE(5),     1,  { { OpClassCode::CALL,   { R0, -1 }, { I0, -1, -1 }, CallRelUncond<D0, S0> } } },
-    //{ "JRAL",   MASK_OPCODE, OPCODE(6),     1,  { { OpClassCode::CALL_JUMP,  { R0, -1 }, { R1, -1, -1 }, CallAbsUncond<D0, S0> } } },
-    //{ "BEZ",    MASK_OPCODE, OPCODE(7),     1,  { { OpClassCode::iBC,    { R0, -1 }, { R1, I0, -1 }, Sequence2<BranchRelCond< S1, Compare< S0, IntConst<u64, 0>, IntCondEqual<u64> > >, Set<D0, IntConst<u64, 0> > > } } },
-    //{ "BNZ",    MASK_OPCODE, OPCODE(8),     1,  { { OpClassCode::iBC,    { R0, -1 }, { R1, I0, -1 }, Sequence2<BranchRelCond< S1, Compare< S0, IntConst<u64, 0>, IntCondNotEqual<u64> > >, Set<D0, IntConst<u64, 0> > > } } },
-    //{ "ADD",    MASK_OPCODE, OPCODE(9),     1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, R2, -1 }, Set<D0, IntAdd<u32, S0, S1> > } } },
-    //{ "ADDi",   MASK_OPCODE, OPCODE(10),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, IntAdd<u32, S0, S1> > } } },
-    //{ "SUB",    MASK_OPCODE, OPCODE(11),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, R2, -1 }, Set<D0, IntSub<u32, S0, S1> > } } },
-    //{ "SUBi",   MASK_OPCODE, OPCODE(12),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, IntSub<u32, S0, S1> > } } },
-    //{ "MUL",    MASK_OPCODE, OPCODE(13),    1,{ { OpClassCode::iMUL,{ R0, -1 },{ R1, R2, -1 }, Set<D0, IntMul<u32, S0, S1> > } } },
-    //{ "MULi",   MASK_OPCODE, OPCODE(14),    1,{ { OpClassCode::iMUL,{ R0, -1 },{ R1, I0, -1 }, Set<D0, IntMul<u32, S0, S1> > } } },
-    //{ "DIV",    MASK_OPCODE, OPCODE(15),    1,{ { OpClassCode::iDIV,{ R0, -1 },{ R1, R2, -1 }, Set<D0, IntDiv<s32, S0, S1> > } } },
-    //{ "DIVi",   MASK_OPCODE, OPCODE(16),    1,{ { OpClassCode::iDIV,{ R0, -1 },{ R1, I0, -1 }, Set<D0, IntDiv<s32, S0, S1> > } } },
-    //{ "DIVU",   MASK_OPCODE, OPCODE(17),    1,{ { OpClassCode::iDIV,{ R0, -1 },{ R1, R2, -1 }, Set<D0, IntDiv<u32, S0, S1> > } } },
-    //{ "DIVUi",  MASK_OPCODE, OPCODE(18),    1,{ { OpClassCode::iDIV,{ R0, -1 },{ R1, I0, -1 }, Set<D0, IntDiv<u32, S0, S1> > } } },
-    //{ "MOD",    MASK_OPCODE, OPCODE(19),    1,{ { OpClassCode::iDIV,{ R0, -1 },{ R1, R2, -1 }, Set<D0, STRAIGHT64IntMod<s32, S0, S1> > } } },
-    //{ "MODi",   MASK_OPCODE, OPCODE(20),    1,{ { OpClassCode::iDIV,{ R0, -1 },{ R1, I0, -1 }, Set<D0, STRAIGHT64IntMod<s32, S0, S1> > } } },
-    //{ "MODU",   MASK_OPCODE, OPCODE(21),    1,{ { OpClassCode::iDIV,{ R0, -1 },{ R1, R2, -1 }, Set<D0, STRAIGHT64IntMod<u32, S0, S1> > } } },
-    //{ "MODUi",  MASK_OPCODE, OPCODE(22),    1,{ { OpClassCode::iDIV,{ R0, -1 },{ R1, I0, -1 }, Set<D0, STRAIGHT64IntMod<u32, S0, S1> > } } },
-    //{ "SLT",    MASK_OPCODE, OPCODE(23),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, R2, -1 }, Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessSigned<u32> > > } } },
-    //{ "SLTi",   MASK_OPCODE, OPCODE(24),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessSigned<u32> > > } } },
-    //{ "SLTU",   MASK_OPCODE, OPCODE(25),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, R2, -1 }, Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessUnsigned<u32> > > } } },
-    //{ "SLTUi",  MASK_OPCODE, OPCODE(26),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, STRAIGHT64Compare<S0, S1, IntCondLessUnsigned<u32> > > } } },
-    //{ "FTOI",   MASK_OPCODE, OPCODE(27),    1,{ { OpClassCode::ifCONV,{ R0,-1 },{ R1,-1, -1 }, Set<D0, Cast<RegisterType, Cast<s32, AsFP<f32, Cast<s32, S0> > > > >} } },
-    //{ "ITOF",   MASK_OPCODE, OPCODE(28),    1,{ { OpClassCode::ifCONV,{ R0,-1 },{ R1,-1, -1 }, Set<D0, Cast<RegisterType, AsInt<s32, Cast<f32, Cast<s32, S0> > > > > } } },
-    //{ "FADD",   MASK_OPCODE, OPCODE(29),    1,{ { OpClassCode::fADD,{ R0,-1 },{ R1,R2,-1 },Set<D0, Cast <RegisterType, AsInt<u32, FPAdd<f32, AsFP<f32, Cast<s32, S0> >, AsFP<f32, Cast<s32, S1> >  > > > > } } },
-    //{ "FSUB",   MASK_OPCODE, OPCODE(30),    1,{ { OpClassCode::fADD,{ R0,-1 },{ R1,R2,-1 },Set<D0, Cast <RegisterType, AsInt<u32, FPSub<f32, AsFP<f32, Cast<s32, S0> >, AsFP<f32, Cast<s32, S1> >  > > > > } } },
-    //{ "FMUL",   MASK_OPCODE, OPCODE(31),    1,{ { OpClassCode::fMUL,{ R0,-1 },{ R1,R2,-1 },Set<D0, Cast <RegisterType, AsInt<u32, FPMul<f32, AsFP<f32, Cast<s32, S0> >, AsFP<f32, Cast<s32, S1> >  > > > > } } },
-    //{ "FDIV",   MASK_OPCODE, OPCODE(32),    1,{ { OpClassCode::fDIV,{ R0,-1 },{ R1,R2,-1 },Set<D0, Cast <RegisterType, AsInt<u32, FPDiv<f32, AsFP<f32, Cast<s32, S0> >, AsFP<f32, Cast<s32, S1> >  > > > > } } },
-    //{ "FSLT",   MASK_OPCODE, OPCODE(33),    1,{ { OpClassCode::fADD,{ R0,-1 },{ R1,R2,-1 },Set<D0, STRAIGHT64FCompare<f32, AsFP<f32, Cast<s32, S0> >, AsFP<f32, Cast<s32, S1> >  > > } } },
-    //{ "SHL",    MASK_OPCODE, OPCODE(34),    1,{ { OpClassCode::iSFT,{ R0, -1 },{ R1, R2, -1 }, Set<D0, LShiftL<u32, S0, S1, 0x3f> > } } },
-    //{ "SHLi",   MASK_OPCODE, OPCODE(35),    1,{ { OpClassCode::iSFT,{ R0, -1 },{ R1, I0, -1 }, Set<D0, LShiftL<u32, S0, S1, 0x3f> > } } },
-    //{ "SHR",    MASK_OPCODE, OPCODE(36),    1,{ { OpClassCode::iSFT,{ R0, -1 },{ R1, R2, -1 }, Set<D0, LShiftR<u32, S0, S1, 0x3f> > } } },
-    //{ "SHRi",   MASK_OPCODE, OPCODE(37),    1,{ { OpClassCode::iSFT,{ R0, -1 },{ R1, I0, -1 }, Set<D0, LShiftR<u32, S0, S1, 0x3f> > } } },
-    //{ "SHRA",   MASK_OPCODE, OPCODE(38),    1,{ { OpClassCode::iSFT,{ R0, -1 },{ R1, R2, -1 }, Set<D0, AShiftR<u32, S0, S1, 0x3f> > } } },
-    //{ "SHRAi",  MASK_OPCODE, OPCODE(39),    1,{ { OpClassCode::iSFT,{ R0, -1 },{ R1, I0, -1 }, Set<D0, AShiftR<u32, S0, S1, 0x3f> > } } },
-    //{ "AND",    MASK_OPCODE, OPCODE(40),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, R2, -1 }, Set<D0, BitAnd<u32, S0, S1> > } } },
-    //{ "ANDi",   MASK_OPCODE, OPCODE(41),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, BitAnd<u32, S0, S1> > } } },
-    //{ "OR",     MASK_OPCODE, OPCODE(42),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, R2, -1 }, Set<D0, BitOr<u32, S0, S1> > } } },
-    //{ "ORi",    MASK_OPCODE, OPCODE(43),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, BitOr<u32, S0, S1> > } } },
-    //{ "XOR",    MASK_OPCODE, OPCODE(44),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, R2, -1 }, Set<D0, BitXor<u32, S0, S1> > } } },
-    //{ "XORi",   MASK_OPCODE, OPCODE(45),    1,{ { OpClassCode::iALU,{ R0, -1 },{ R1, I0, -1 }, Set<D0, BitXor<u32, S0, S1> > } } },
-    //{ "LUi",    MASK_OPCODE, OPCODE(46),    1,{ { OpClassCode::iALU,{ R0, -1 },{ I0, -1, -1 }, Set<D0, STRAIGHT64Lui<S0> > } } },
-    //{ "SPADDi", MASK_OPCODE, OPCODE(47),    1,{ { OpClassCode::iMOV,{ R0, -1 },{ I0, -1, -1 }, Set<D0, STRAIGHT64Copy<S0> > } } }, // iMOV扱いだがフロントエンドで即値を書き換える
-    //{ "RPINC",  MASK_OPCODE, OPCODE(48),    1,{ { OpClassCode::iNOP,{ -1, -1 },{ I0, -1, -1 }, NoOperation } } },                  // フロントエンドで処理するのでNOP扱い
-    //{ "RMOV",   MASK_OPCODE, OPCODE(49),    1,{ { OpClassCode::iMOV,{ R0, -1 },{ R1, -1, -1 }, Set<D0, STRAIGHT64Copy<S0> > } } },
-    //{ "LD",     MASK_OPCODE, OPCODE(50),    1,{ { OpClassCode::iLD,{ R0, -1 },{ R1, I0, -1 }, Set<D0, Load<u32, STRAIGHT64Addr<S0, S1> > > } } },
-    //{ "LDH",    MASK_OPCODE, OPCODE(51),    1,{ { OpClassCode::iLD,{ R0, -1 },{ R1, I0, -1 }, Set<D0, Load<s32, STRAIGHT64Addr<S0, S1> > > } } },
-    //{ "LDHU",   MASK_OPCODE, OPCODE(52),    1,{ { OpClassCode::iLD,{ R0, -1 },{ R1, I0, -1 }, Set<D0, Load<u32, STRAIGHT64Addr<S0, S1> > > } } },
-    //{ "LDB",    MASK_OPCODE, OPCODE(53),    1,{ { OpClassCode::iLD,{ R0, -1 },{ R1, I0, -1 }, Set<D0, Load<s8,  STRAIGHT64Addr<S0, S1> > > } } },
-    //{ "LDBU",   MASK_OPCODE, OPCODE(54),    1,{ { OpClassCode::iLD,{ R0, -1 },{ R1, I0, -1 }, Set<D0, Load<u8,  STRAIGHT64Addr<S0, S1> > > } } },
-    //{ "ST",     MASK_OPCODE, OPCODE(55),    1,{ { OpClassCode::iST,{ R0, -1 },{ R1, I0, R2 }, Set<D0, STRAIGHT64Store<u32, S0, STRAIGHT64Addr<S1, S2> > > } } },
-    //{ "STH",    MASK_OPCODE, OPCODE(56),    1,{ { OpClassCode::iST,{ R0, -1 },{ R1, I0, R2 }, Set<D0, STRAIGHT64Store<s32, S0, STRAIGHT64Addr<S1, S2> > > } } },
-    //{ "STB",    MASK_OPCODE, OPCODE(57),    1,{ { OpClassCode::iST,{ R0, -1 },{ R1, I0, R2 }, Set<D0, STRAIGHT64Store<s8,  S0, STRAIGHT64Addr<S1, S2> > > } } }
-    
+    // Float
+    //{ "FADD.s",     MASK_FLOAT, OPCODE_FLOAT32(0b00000), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, Set<D0, RISCV64NanBoxing<FPAdd<f32, SF0, SF1> > >} }, // ToDo: RM!!
+    //{ "FSUB.s",     MASK_FLOAT, OPCODE_FLOAT32(0b00001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, Set<D0, RISCV64NanBoxing<FPSub<f32, SF0, SF1> > >} }, // ToDo: RM!!
+    //{ "FMUL.s",     MASK_FLOAT, OPCODE_FLOAT32(0b00010), 1, {OpClassCode::fMUL,    {R0, -1}, {R1, R2, I0}, Set<D0, RISCV64NanBoxing<FPMul<f32, SF0, SF1> > >} }, // ToDo: RM!!
+    //{ "FDIV.s",     MASK_FLOAT, OPCODE_FLOAT32(0b00011), 1, {OpClassCode::fDIV,    {R0, -1}, {R1, R2, I0}, Set<D0, RISCV64NanBoxing<FPDiv<f32, SF0, SF1> > >} }, // ToDo: RM!!
+    //{ "FSQRT.s",    MASK_FLOAT, OPCODE_FLOAT32(0b00100), 1, {OpClassCode::fELEM,   {R0, -1}, {R1, I0, -1}, Set<D0, RISCV64NanBoxing<FPSqrt<f32, SF0> > >} }, // ToDo: RM!!
+    //{ "FSGNJ.s",    MASK_FLOAT, OPCODE_FLOAT32(0b01000), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, SetSext<D0, FPFLOATCopySign<S1, S0> >} }, // ToDo: RM!!
+    //{ "FSGNJN.s",   MASK_FLOAT, OPCODE_FLOAT32(0b01001), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, SetSext<D0, FPFLOATCopySignNeg<S1, S0> >} }, // ToDo: RM!!
+    //{ "FSGNJX.s",   MASK_FLOAT, OPCODE_FLOAT32(0b01010), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, SetSext<D0, FPFLOATCopySignXor<S1, S0> >} }, // ToDo: RM!!
+    //{ "FMIN.s",     MASK_FLOAT, OPCODE_FLOAT32(0b01100), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, Set<D0, RISCV64NanBoxing<RISCV64FPMIN<f32, SF0, SF1> > >} },
+    //{ "FMAX.s",     MASK_FLOAT, OPCODE_FLOAT32(0b01101), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, Set<D0, RISCV64NanBoxing<RISCV64FPMAX<f32, SF0, SF1> > >} },
+    //{ "FCLASS.s",   MASK_FLOAT, OPCODE_FLOAT32(0b10000), 1, {OpClassCode::fADD,    {R0, -1}, {R1, -1, -1}, Set<D0, RISCV64FCLASS<f32, SF0> >} },
+    //{ "FEQ.s",      MASK_FLOAT, OPCODE_FLOAT32(0b10001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPEqual<f32, SF0, SF1> >} },
+    //{ "FLT.s",      MASK_FLOAT, OPCODE_FLOAT32(0b10010), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLess<f32, SF0, SF1> >} },
+    //{ "FLE.s",      MASK_FLOAT, OPCODE_FLOAT32(0b10011), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLessEqual<f32, SF0, SF1> >} },
+    //{ "FCVT.s.d",   MASK_FLOAT, OPCODE_FLOAT32(0b10100), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // ToDo: RM!!
+    //{ "FCVT.32.s",  MASK_FLOAT, OPCODE_FLOAT32(0b11000), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.32u.s", MASK_FLOAT, OPCODE_FLOAT32(0b11001), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.s.32",  MASK_FLOAT, OPCODE_FLOAT32(0b11010), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.s.32u", MASK_FLOAT, OPCODE_FLOAT32(0b11011), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.64.s",  MASK_FLOAT, OPCODE_FLOAT32(0b11100), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.64u.s", MASK_FLOAT, OPCODE_FLOAT32(0b11101), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.s.64",  MASK_FLOAT, OPCODE_FLOAT32(0b11110), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.s.64u", MASK_FLOAT, OPCODE_FLOAT32(0b11111), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+
+    // Double
+    { "FADD.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00000), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPAdd<f64, SF0, SF1> >} }, // ToDo: RM!!
+    { "FSUB.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPSub<f64, SF0, SF1> >} }, // ToDo: RM!!
+    { "FMUL.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00010), 1, {OpClassCode::fMUL,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPMul<f64, SF0, SF1> >} }, // ToDo: RM!!
+    { "FDIV.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00011), 1, {OpClassCode::fDIV,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPDiv<f64, SF0, SF1> >} }, // ToDo: RM!!
+    { "FSQRT.d",    MASK_FLOAT, OPCODE_FLOAT64(0b00100), 1, {OpClassCode::fELEM,   {R0, -1}, {R1, I0, -1}, SetFP<D0, FPSqrt<f64, SF0> >} }, // ToDo: RM!!
+    { "FSGNJ.d",    MASK_FLOAT, OPCODE_FLOAT64(0b01000), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, Set<D0, FPDoubleCopySign<S1, S0> >} }, // ToDo: RM!!
+    { "FSGNJN.d",   MASK_FLOAT, OPCODE_FLOAT64(0b01001), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, Set<D0, FPDoubleCopySignNeg<S1, S0> >} }, // ToDo: RM!!
+    { "FSGNJX.d",   MASK_FLOAT, OPCODE_FLOAT64(0b01010), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, Set<D0, FPDoubleCopySignXor<S1, S0> >} }, // ToDo: RM!!
+    { "FMIN.d",     MASK_FLOAT, OPCODE_FLOAT64(0b01100), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, SetFP<D0, RISCV64FPMIN<f64, SF0, SF1> >} },
+    { "FMAX.d",     MASK_FLOAT, OPCODE_FLOAT64(0b01101), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, SetFP<D0, RISCV64FPMAX<f64, SF0, SF1> >} },
+    { "FCLASS.d",   MASK_FLOAT, OPCODE_FLOAT64(0b10000), 1, {OpClassCode::fADD,    {R0, -1}, {R1, -1, -1}, SetFP<D0, RISCV64FCLASS<f64, SF0> >} },
+    { "FEQ.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPEqual<f64, SF0, SF1> >} },
+    { "FLT.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10010), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLess<f64, SF0, SF1> >} },
+    { "FLE.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10011), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLessEqual<f64, SF0, SF1> >} },
+    //{ "FCVT.d.s",   MASK_FLOAT, OPCODE_FLOAT64(0b10100), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // ToDo: RM!!
+    //{ "FCVT.32.d",  MASK_FLOAT, OPCODE_FLOAT64(0b11000), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.32u.d", MASK_FLOAT, OPCODE_FLOAT64(0b11001), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.d.32",  MASK_FLOAT, OPCODE_FLOAT64(0b11010), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.d.32u", MASK_FLOAT, OPCODE_FLOAT64(0b11011), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.64.d",  MASK_FLOAT, OPCODE_FLOAT64(0b11100), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.64u.d", MASK_FLOAT, OPCODE_FLOAT64(0b11101), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.d.64",  MASK_FLOAT, OPCODE_FLOAT64(0b11110), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    //{ "FCVT.d.64u", MASK_FLOAT, OPCODE_FLOAT64(0b11111), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+
+
 };
 
 //
