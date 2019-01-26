@@ -302,7 +302,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     //{ "FCVT.d.32u", MASK_FLOAT, OPCODE_FLOAT64(0b11011), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
     //{ "FCVT.64.d",  MASK_FLOAT, OPCODE_FLOAT64(0b11100), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
     //{ "FCVT.64u.d", MASK_FLOAT, OPCODE_FLOAT64(0b11101), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
-    //{ "FCVT.d.64",  MASK_FLOAT, OPCODE_FLOAT64(0b11110), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
+    { "FCVT.d.64",  MASK_FLOAT, OPCODE_FLOAT64(0b11110), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, Cast<u64, S0> > >} }, // ToDo: RM!!
     //{ "FCVT.d.64u", MASK_FLOAT, OPCODE_FLOAT64(0b11111), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
 
 
