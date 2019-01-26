@@ -270,7 +270,7 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     //{ "FEQ.s",      MASK_FLOAT, OPCODE_FLOAT32(0b10001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPEqual<f32, SF0, SF1> >} },
     //{ "FLT.s",      MASK_FLOAT, OPCODE_FLOAT32(0b10010), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLess<f32, SF0, SF1> >} },
     //{ "FLE.s",      MASK_FLOAT, OPCODE_FLOAT32(0b10011), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLessEqual<f32, SF0, SF1> >} },
-    //{ "FCVT.s.d",   MASK_FLOAT, OPCODE_FLOAT32(0b10100), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // ToDo: RM!!
+    { "FCVT.s.d",   MASK_FLOAT, OPCODE_FLOAT32(0b10100), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, Set<D0, RISCV64NanBoxing<CastFP<f32, SD0> > >} }, // ToDo: RM!!
     //{ "FCVT.32.s",  MASK_FLOAT, OPCODE_FLOAT32(0b11000), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
     //{ "FCVT.32u.s", MASK_FLOAT, OPCODE_FLOAT32(0b11001), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
     //{ "FCVT.s.32",  MASK_FLOAT, OPCODE_FLOAT32(0b11010), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
@@ -281,20 +281,20 @@ STRAIGHT64Converter::OpDef STRAIGHT64Converter::m_OpDefsBase[] =
     //{ "FCVT.s.64u", MASK_FLOAT, OPCODE_FLOAT32(0b11111), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
 
     // Double
-    { "FADD.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00000), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPAdd<f64, SF0, SF1> >} }, // ToDo: RM!!
-    { "FSUB.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPSub<f64, SF0, SF1> >} }, // ToDo: RM!!
-    { "FMUL.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00010), 1, {OpClassCode::fMUL,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPMul<f64, SF0, SF1> >} }, // ToDo: RM!!
-    { "FDIV.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00011), 1, {OpClassCode::fDIV,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPDiv<f64, SF0, SF1> >} }, // ToDo: RM!!
-    { "FSQRT.d",    MASK_FLOAT, OPCODE_FLOAT64(0b00100), 1, {OpClassCode::fELEM,   {R0, -1}, {R1, I0, -1}, SetFP<D0, FPSqrt<f64, SF0> >} }, // ToDo: RM!!
+    { "FADD.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00000), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPAdd<f64, SD0, SD1> >} }, // ToDo: RM!!
+    { "FSUB.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPSub<f64, SD0, SD1> >} }, // ToDo: RM!!
+    { "FMUL.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00010), 1, {OpClassCode::fMUL,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPMul<f64, SD0, SD1> >} }, // ToDo: RM!!
+    { "FDIV.d",     MASK_FLOAT, OPCODE_FLOAT64(0b00011), 1, {OpClassCode::fDIV,    {R0, -1}, {R1, R2, I0}, SetFP<D0, FPDiv<f64, SD0, SD1> >} }, // ToDo: RM!!
+    { "FSQRT.d",    MASK_FLOAT, OPCODE_FLOAT64(0b00100), 1, {OpClassCode::fELEM,   {R0, -1}, {R1, I0, -1}, SetFP<D0, FPSqrt<f64, SD0> >} }, // ToDo: RM!!
     { "FSGNJ.d",    MASK_FLOAT, OPCODE_FLOAT64(0b01000), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, Set<D0, FPDoubleCopySign<S1, S0> >} }, // ToDo: RM!!
     { "FSGNJN.d",   MASK_FLOAT, OPCODE_FLOAT64(0b01001), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, Set<D0, FPDoubleCopySignNeg<S1, S0> >} }, // ToDo: RM!!
     { "FSGNJX.d",   MASK_FLOAT, OPCODE_FLOAT64(0b01010), 1, {OpClassCode::fMOV,    {R0, -1}, {R1, R2, I0}, Set<D0, FPDoubleCopySignXor<S1, S0> >} }, // ToDo: RM!!
-    { "FMIN.d",     MASK_FLOAT, OPCODE_FLOAT64(0b01100), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, SetFP<D0, RISCV64FPMIN<f64, SF0, SF1> >} },
-    { "FMAX.d",     MASK_FLOAT, OPCODE_FLOAT64(0b01101), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, SetFP<D0, RISCV64FPMAX<f64, SF0, SF1> >} },
-    { "FCLASS.d",   MASK_FLOAT, OPCODE_FLOAT64(0b10000), 1, {OpClassCode::fADD,    {R0, -1}, {R1, -1, -1}, SetFP<D0, RISCV64FCLASS<f64, SF0> >} },
-    { "FEQ.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPEqual<f64, SF0, SF1> >} },
-    { "FLT.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10010), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLess<f64, SF0, SF1> >} },
-    { "FLE.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10011), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLessEqual<f64, SF0, SF1> >} },
+    { "FMIN.d",     MASK_FLOAT, OPCODE_FLOAT64(0b01100), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, SetFP<D0, RISCV64FPMIN<f64, SD0, SD1> >} },
+    { "FMAX.d",     MASK_FLOAT, OPCODE_FLOAT64(0b01101), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, SetFP<D0, RISCV64FPMAX<f64, SD0, SD1> >} },
+    { "FCLASS.d",   MASK_FLOAT, OPCODE_FLOAT64(0b10000), 1, {OpClassCode::fADD,    {R0, -1}, {R1, -1, -1}, SetFP<D0, RISCV64FCLASS<f64, SD0> >} },
+    { "FEQ.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10001), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPEqual<f64, SD0, SD1> >} },
+    { "FLT.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10010), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLess<f64, SD0, SD1> >} },
+    { "FLE.d",      MASK_FLOAT, OPCODE_FLOAT64(0b10011), 1, {OpClassCode::fADD,    {R0, -1}, {R1, R2, -1}, Set<D0, RISCV64FPLessEqual<f64, SD0, SD1> >} },
     //{ "FCVT.d.s",   MASK_FLOAT, OPCODE_FLOAT64(0b10100), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // ToDo: RM!!
     //{ "FCVT.32.d",  MASK_FLOAT, OPCODE_FLOAT64(0b11000), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
     //{ "FCVT.32u.d", MASK_FLOAT, OPCODE_FLOAT64(0b11001), 1, {OpClassCode::ifCONV,  {R0, -1}, {R1, R2, I0}, SetFP< D0, CastFP<f64, SF0> >} }, // UNIMPLEMENTED! ToDo: RM!!
