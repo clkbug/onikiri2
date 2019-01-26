@@ -40,24 +40,39 @@ namespace Onikiri {
         namespace SyscallID {
 
             const int syscall_id_getcwd = 17;
+            const int syscall_id_fcntl = 25;
             const int syscall_id_ioctl = 29;
+            const int syscall_id_unlinkat = 35;
+            const int syscall_id_ftruncate = 46;
+            const int syscall_id_faccessat = 48;
+            const int syscall_id_chdir = 49;
             const int syscall_id_openat = 56;
 
             const int syscall_id_close = 57;
+            const int syscall_id_pipe2 = 59;
+
             const int syscall_id_lseek = 62;
             const int syscall_id_read = 63;
             const int syscall_id_write = 64;
             const int syscall_id_writev = 66;
 
             const int syscall_id_readlinkat = 78;
-
+            
+            const int syscall_id_fstatat = 79;
             const int syscall_id_fstat = 80;
             const int syscall_id_exit = 93;
             const int syscall_id_exit_group = 94;
 
+            const int syscall_id_clock_gettime = 113;
             const int syscall_id_sigaction = 134;
+            const int syscall_id_times = 153;
 
             const int syscall_id_uname = 160;
+
+            const int syscall_id_setrlimit = 163;
+            const int syscall_id_getrlimit = 164;
+
+            const int syscall_id_getrusage = 165;
 
             const int syscall_id_gettimeofday = 169;
             
@@ -68,12 +83,17 @@ namespace Onikiri {
             const int syscall_id_getgid = 176;
             const int syscall_id_getegid = 177;
 
-            
+            const int syscall_id_sysinfo = 179;
+
             const int syscall_id_brk = 214;
             const int syscall_id_munmap = 215;
             const int syscall_id_mremap = 216;
 
+            const int syscall_id_clone = 220;
+
             const int syscall_id_mmap = 222;
+
+            const int syscall_id_prlimit64 = 261;
 
             const int syscall_id_open = 1024;
             const int syscall_id_unlink = 1026;
@@ -85,7 +105,6 @@ namespace Onikiri {
             const int syscall_id_creat = 8;
             const int syscall_id_link = 9;
 
-            const int syscall_id_chdir = 12;
             const int syscall_id_time = 13;
 
             const int syscall_id_chmod = 15;
@@ -109,9 +128,6 @@ namespace Onikiri {
             const int syscall_id_dup2 = 63;
             const int syscall_id_setreuid = 70;
             const int syscall_id_setregid = 71;
-            const int syscall_id_setrlimit = 75;
-            const int syscall_id_getrlimit = 76;
-            const int syscall_id_getrusage = 77;
             const int syscall_id_readlink = 85;
             const int syscall_id_mmap = 90;
             const int syscall_id_truncate = 92;

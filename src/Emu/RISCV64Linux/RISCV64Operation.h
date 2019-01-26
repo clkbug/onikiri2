@@ -34,10 +34,12 @@
 
 #include "SysDeps/fenv.h"
 #include "Utility/RuntimeError.h"
+#include "Emu/Utility/DecoderUtility.h"
 #include "Emu/Utility/GenericOperation.h"
 #include "Emu/Utility/System/Syscall/SyscallConvIF.h"
 #include "Emu/Utility/System/ProcessState.h"
 #include "Emu/Utility/System/Memory/MemorySystem.h"
+#include "Emu/Utility/System/VirtualSystem.h"
 
 
 namespace Onikiri {
@@ -144,8 +146,8 @@ namespace Onikiri {
             {
                 Type operator()(OpEmulationState* opState)
                 {
-                    Type lhs = TSrc1()(opState);
-                    Type rhs = TSrc2()(opState);
+                    Type lhs = static_cast<Type>(TSrc1()(opState));
+                    Type rhs = static_cast<Type>(TSrc2()(opState));
 
                     if (lhs > rhs) {
                         return rhs;
@@ -156,14 +158,13 @@ namespace Onikiri {
                 }
             };
 
-
             template <typename Type, typename TSrc1, typename TSrc2>
             struct RISCV64MAX : public std::unary_function<EmulatorUtility::OpEmulationState*, Type>
             {
                 Type operator()(OpEmulationState* opState)
                 {
-                    Type lhs = TSrc1()(opState);
-                    Type rhs = TSrc2()(opState);
+                    Type lhs = static_cast<Type>(TSrc1()(opState));
+                    Type rhs = static_cast<Type>(TSrc2()(opState));
 
                     if (lhs < rhs) {
                         return rhs;
@@ -171,6 +172,74 @@ namespace Onikiri {
                     else {
                         return lhs;
                     }
+                }
+            };
+
+            template <typename T>
+            T CanonicalNAN() {
+                return 0;
+            }
+
+            template <>
+            f64 CanonicalNAN<f64>() {
+                return AsFPFunc<f64, u64>(0x7ff8000000000000ull);
+            }
+
+            template <>
+            f32 CanonicalNAN<f32>() {
+                return AsFPFunc<f32, u32>(0x7fc00000);
+            }
+
+            template <typename Type, typename TSrc1, typename TSrc2>
+            struct RISCV64FPMIN : public std::unary_function<EmulatorUtility::OpEmulationState*, Type>
+            {
+                Type operator()(OpEmulationState* opState)
+                {
+                    Type lhs = static_cast<Type>(TSrc1()(opState));
+                    Type rhs = static_cast<Type>(TSrc2()(opState));
+
+                    // 双方 NaN の場合は正規化された NaN を返す
+                    if (std::isnan(lhs) && std::isnan(rhs)) {
+                        return CanonicalNAN<Type>();    
+                    }
+
+                    // 符号付き負のゼロの方がが必ず小さくなるように
+                    if (lhs == 0.0 && rhs == 0.0) {
+                        return
+                            std::copysign(1, lhs) == (Type)-1.0 ||
+                            std::copysign(1, rhs) == (Type)-1.0 ? (Type)-0.0 : (Type)0.0;
+                    }
+
+                    // NaN じゃない方が常に選ばれるように
+                    if (std::isnan(lhs)) { lhs = std::numeric_limits<Type>::infinity(); }
+                    if (std::isnan(rhs)) { rhs = std::numeric_limits<Type>::infinity(); }
+                    return (lhs > rhs) ? rhs : lhs;
+                }
+            };
+
+
+            template <typename Type, typename TSrc1, typename TSrc2>
+            struct RISCV64FPMAX : public std::unary_function<EmulatorUtility::OpEmulationState*, Type>
+            {
+                Type operator()(OpEmulationState* opState)
+                {
+                    Type lhs = static_cast<Type>(TSrc1()(opState));
+                    Type rhs = static_cast<Type>(TSrc2()(opState));
+
+                    if (lhs == 0.0 && rhs == 0.0) {
+                        return
+                            std::copysign(1, lhs) == (Type)-1.0 &&
+                            std::copysign(1, rhs) == (Type)-1.0 ? (Type)-0.0 : (Type)0.0;
+                    }
+
+                    if (std::isnan(lhs) && std::isnan(rhs)) {
+                        return CanonicalNAN<Type>();
+                    }
+
+                    if (std::isnan(lhs)) { lhs = -std::numeric_limits<Type>::infinity(); }
+                    if (std::isnan(rhs)) { rhs = -std::numeric_limits<Type>::infinity(); }
+
+                    return (lhs < rhs) ? rhs : lhs;
                 }
             };
             
@@ -184,15 +253,6 @@ namespace Onikiri {
                 u64 operator()(EmulatorUtility::OpEmulationState* opState) const
                 {
                     return 0xffffffff00000000 | AsIntFunc<u32, f32>(TSrc()(opState));
-                }
-            };
-
-            struct RISCV64RoundModeFromFCSR : public std::unary_function<EmulatorUtility::OpEmulationState, u64>
-            {
-                int operator()(EmulatorUtility::OpEmulationState* opState) const
-                {
-                    // TODO: Select a round mode from FCSR
-                    return FE_TONEAREST;
                 }
             };
 
@@ -236,7 +296,7 @@ namespace Onikiri {
                     Type ths = TSrc3()(opState); //変数名適当です
 
                     Onikiri::ScopedFESetRound sr(RoundMode()(opState));
-                    volatile Type rvalue = std::fma(-lhs, rhs, ths);
+                    volatile Type rvalue = std::fma(-lhs, rhs, -ths);
                     return rvalue;
                 }
             };
@@ -251,57 +311,43 @@ namespace Onikiri {
                     Type ths = TSrc3()(opState); //変数名適当です
 
                     Onikiri::ScopedFESetRound sr(RoundMode()(opState));
-                    volatile Type rvalue = std::fma(-lhs, rhs, -ths);
+                    volatile Type rvalue = std::fma(-lhs, rhs, ths);
                     return rvalue;
                 }
             };
 
             //conversion
 
-            // TSrc の浮動小数点数をTypeの符号付き整数型に変換する．
-            // Typeで表せる最大値を超えている場合は最大値を，最小値を下回っている場合は最小値を返す．
+            // Convert floating point number TSrc to integer Type.
             template <typename Type, typename TSrc, typename RoundMode = IntConst<int, FE_ROUNDDEFAULT> >
             struct RISCV64FPToInt : public std::unary_function<EmulatorUtility::OpEmulationState*, Type>
             {
                 Type operator()(EmulatorUtility::OpEmulationState* opState)
                 {
-                    typedef typename EmulatorUtility::signed_type<Type>::type SignedType;
                     typedef typename TSrc::result_type FPType;
-                    // 2の補数を仮定
-                    const SignedType maxValue = std::numeric_limits<SignedType>::max(); //ここ理解できてない（稲岡）
-                    const SignedType minValue = std::numeric_limits<SignedType>::min();
-                    FPType value = static_cast<FPType>(TSrc()(opState));
 
-                    if (value > static_cast<FPType>(maxValue))
+                    const Type maxValue = std::numeric_limits<Type>::max();
+                    const Type minValue = std::numeric_limits<Type>::min();
+                    FPType value = TSrc()(opState);
+
+                    if (std::isnan(value)) // NaN
+                        return maxValue;
+                    else if (std::isinf(value) && !std::signbit(value)) // +Inf
+                        return maxValue;
+                    else if (std::isinf(value) && std::signbit(value)) // -Inf
+                        return minValue;
+                    else if (value > static_cast<FPType>(maxValue))
                         return maxValue;
                     else if (value < static_cast<FPType>(minValue))
                         return minValue;
-                    else
-                        return static_cast<Type>(value);
+                    else {
+                        Onikiri::ScopedFESetRound sr(RoundMode()(opState));
+                        volatile Type ret = static_cast<Type>(value);
+                        return ret;
+                    }
                 }
             };
 
-            //符号なし整数型に変換
-            template <typename Type, typename TSrc, typename RoundMode = IntConst<int, FE_ROUNDDEFAULT> >
-            struct RISCV64FPToIntU : public std::unary_function<EmulatorUtility::OpEmulationState*, Type>
-            {
-                Type operator()(EmulatorUtility::OpEmulationState* opState)
-                {
-                    typedef typename EmulatorUtility::unsigned_type<Type>::type UnsignedType;
-                    typedef typename TSrc::result_type FPType;
-                    // 2の補数を仮定
-                    const UnsignedType maxValue = std::numeric_limits<UnsignedType>::max();
-                    const UnsignedType minValue = std::numeric_limits<UnsignedType>::min();
-                    FPType value = static_cast<FPType>(TSrc()(opState));
-
-                    if (value > static_cast<FPType>(maxValue))
-                        return maxValue;
-                    else if (value < static_cast<FPType>(minValue))
-                        return minValue;
-                    else
-                        return static_cast<Type>(value);
-                }
-            };
 
             // sign from src1 and the rest from src2
             //FLOAT版、GenericOperationに入れてもいいかも
@@ -358,7 +404,7 @@ namespace Onikiri {
             //compare
 
             template <typename Type, typename TSrc1, typename TSrc2>
-            struct RISCV64FPEqual : public std::unary_function<EmulatorUtility::OpEmulationState*, u64> //あってる？
+            struct RISCV64FPEqual : public std::unary_function<EmulatorUtility::OpEmulationState*, bool>
             {
                 bool operator()(EmulatorUtility::OpEmulationState* opState)
                 {
@@ -370,7 +416,7 @@ namespace Onikiri {
             };
 
             template <typename Type, typename TSrc1, typename TSrc2>
-            struct RISCV64FPLess : public std::unary_function<EmulatorUtility::OpEmulationState*, u64> //あってる？
+            struct RISCV64FPLess : public std::unary_function<EmulatorUtility::OpEmulationState*, bool>
             {
                 bool operator()(EmulatorUtility::OpEmulationState* opState)
                 {
@@ -382,7 +428,7 @@ namespace Onikiri {
             };
 
             template <typename Type, typename TSrc1, typename TSrc2>
-            struct RISCV64FPLessEqual : public std::unary_function<EmulatorUtility::OpEmulationState*, u64> //あってる？
+            struct RISCV64FPLessEqual : public std::unary_function<EmulatorUtility::OpEmulationState*, bool>
             {
                 bool operator()(EmulatorUtility::OpEmulationState* opState)
                 {
@@ -393,6 +439,22 @@ namespace Onikiri {
                 }
             };
 
+            // 指数部が全て1で，仮数部が非ゼロなら NaN
+            // さらに，仮数部の最上位が 0 なら Signaling
+            inline bool IsSignalingNAN(f64 fpValue) {
+                u64 intValue = AsIntFunc<u64>(fpValue);
+                return 
+                    (((intValue >> 51) & 0xFFF) == 0xFFE) && 
+                    (intValue & 0x7FFFFFFFFFFFFull);
+            }
+
+            inline bool IsSignalingNAN(f32 fpValue) {
+                u32 intValue = AsIntFunc<u32>(fpValue);
+                return 
+                    (((intValue >> 22) & 0x1FF) == 0x1FE) && 
+                    (intValue & 0x3FFFFF);
+            }
+
             //ここを頑張る
             template <typename Type, typename TSrc1>
             struct RISCV64FCLASS : public std::unary_function<EmulatorUtility::OpEmulationState*, u64>
@@ -400,26 +462,21 @@ namespace Onikiri {
                 u64 operator()(EmulatorUtility::OpEmulationState* opState)
                 {
                     Type value = static_cast<Type>(TSrc1()(opState));
+
                     switch(std::fpclassify(value)) {
-                case FP_INFINITE:
-                            if(std::signbit(value)) return (u64)0x0000000000000001;
-                            else return (u64)0x0000000000000080;
-                            break;
-                case FP_NAN:       return (u64)0x0000000000000100;
-                case FP_NORMAL:
-                            if(std::signbit(value)) return (u64)0x0000000000000002;
-                            else return (u64)0x0000000000000040;
-                            break;
-                case FP_SUBNORMAL:
-                            if(std::signbit(value)) return (u64)0x0000000000000004;
-                            else return (u64)0x0000000000000020;
-                            break;
-                case FP_ZERO:
-                            if(std::signbit(value)) return (u64)0x0000000000000008;
-                            else return (u64)0x0000000000000010;
-                            break;
-                default:           return 0x0000000000000000;
-                }
+                    case FP_INFINITE:
+                        return std::signbit(value) ? (u64)(1 << 0) : (u64)(1 << 7);
+                    case FP_NAN:
+                        return IsSignalingNAN(value) ? (u64)(1 << 8) : (u64)(1 << 9);
+                    case FP_NORMAL:
+                        return std::signbit(value) ? (u64)(1 << 1) : (u64)(1 << 6);
+                    case FP_SUBNORMAL:
+                        return std::signbit(value) ? (u64)(1 << 2) : (u64)(1 << 5);
+                    case FP_ZERO:
+                        return std::signbit(value) ? (u64)(1 << 3) : (u64)(1 << 4);
+                    default:
+                        return 0;
+                    }
                 }
             };
 
@@ -606,28 +663,6 @@ namespace Onikiri {
                 }
             };
 
-            template <typename Type, typename TSrc1, typename TSrc2>
-            struct RISCV64Min : public std::unary_function<OpEmulationState*, u64>
-            {
-                u64 operator()(OpEmulationState* opState)
-                {
-                    Type src1 = static_cast<Type>(TSrc1()(opState));
-                    Type src2 = static_cast<Type>(TSrc2()(opState));
-                    return static_cast<u64>(std::min(src1, src2));
-                }
-            };
-
-            template <typename Type, typename TSrc1, typename TSrc2>
-            struct RISCV64Max : public std::unary_function<OpEmulationState*, u64>
-            {
-                u64 operator()(OpEmulationState* opState)
-                {
-                    Type src1 = static_cast<Type>(TSrc1()(opState));
-                    Type src2 = static_cast<Type>(TSrc2()(opState));
-                    return static_cast<u64>(std::max(src1, src2));
-                }
-            };
-
             template <typename Type, typename TAddr>
             struct RISCV64AtomicLoad : public std::unary_function<OpEmulationState*, u64>
             {
@@ -667,11 +702,56 @@ namespace Onikiri {
                 }
             }
 
-            template <typename Type, typename TDst, typename TAddr, typename Operation>
-            void RISCV64AtomicOperation(OpEmulationState* opState)
+            namespace {
+                // Virtual control status registers for holding the
+                // reservation status of the 'load-reserved' instruction.
+                enum class RISCV64pseudoCSR {
+                    // 0 - 4095 are used for RISCV64CSR (real CSRs)
+                    RESERVED_ADDRESS = 4096,
+                    RESERVING = 4097,
+                };
+            }
+
+            // We cannot use the Load instead of the RISCV64AtomicLoad
+            // because atomic instructions are not iLD instructions,
+            // and this confuses the MemOrderManager.
+            //
+            // I assume it is sufficient that the processor remember
+            // only the reserved address. (or need the infomation of size?)
+            template <typename Type, typename TDest, typename TAddr>
+            void RISCV64LoadReserved(OpEmulationState* opState)
             {
-                Set<TDst, RISCV64AtomicLoad<Type, TAddr>>(opState);
-                RISCV64AtomicStore<Type, Operation, TAddr>(opState);
+                Set<TDest, RISCV64AtomicLoad<Type, TAddr>>(opState);
+                // Set reserved address
+                ProcessState* process = opState->GetProcessState();
+                process->SetControlRegister(static_cast<u64>(RISCV64pseudoCSR::RESERVED_ADDRESS), TAddr()(opState));
+                process->SetControlRegister(static_cast<u64>(RISCV64pseudoCSR::RESERVING), 1);
+            }
+
+            template <typename Type, typename TDest, typename TValue, typename TAddr>
+            void RISCV64StoreConditional(OpEmulationState* opState)
+            {
+                ProcessState* process = opState->GetProcessState();
+                u64 reserved_addr = process->GetControlRegister(static_cast<u64>(RISCV64pseudoCSR::RESERVED_ADDRESS));
+                u64 reserving = process->GetControlRegister(static_cast<u64>(RISCV64pseudoCSR::RESERVING));
+                u64 addr = TAddr()(opState);
+                if (reserving && reserved_addr == addr)
+                {
+                    // We cannot use the Store instead of the RISCV64AtomicStore. See above.
+                    RISCV64AtomicStore<Type, TValue, TAddr>(opState);
+                    // 0 means success (always success; we assume only single thread execution)
+                    Set<TDest, IntConst<u64, 0>>(opState);
+                    // Release reserved address.
+                    process->SetControlRegister(static_cast<u64>(RISCV64pseudoCSR::RESERVING), 0);
+                }
+                else {
+                    // No store.
+
+                    // 1 means 'unspecified failure'.
+                    Set<TDest, IntConst<u64, 1>>(opState);
+                    // Don't release reserved address. Is this right?
+
+                }
             }
 
             inline void RISCV64SyscallSetArg(EmulatorUtility::OpEmulationState* opState)
@@ -680,6 +760,8 @@ namespace Onikiri {
                 syscallConv->SetArg(0, SrcOperand<0>()(opState));
                 syscallConv->SetArg(1, SrcOperand<1>()(opState));
                 syscallConv->SetArg(2, SrcOperand<2>()(opState));
+                // Make dependency between this op and the next op so that 
+                // they are executed in-order
                 DstOperand<0>::SetOperand(opState, SrcOperand<0>()(opState));
             }
 
@@ -697,33 +779,152 @@ namespace Onikiri {
                 DstOperand<0>::SetOperand(opState, error ? (u64)-1 : val);
             }
 
-            template <typename TDest, typename CSR_D, typename TSrc1, typename CSR_S>
+
+            //
+            // CSR Operations
+            //
+            namespace {
+                enum class RISCV64CSR
+                {
+                    FFLAGS  = 0x001,
+                    FRM     = 0x002,
+                    FCSR    = 0x003,
+                    CYCLE   = 0xC00,
+                    TIME    = 0xC01,
+                    INSTRET = 0xC02,
+                };
+
+                enum class RISCV64FRM
+                {
+                    RNE = 0, // Round to Nearest, ties to Even
+                    RTZ = 1, // Round towards Zero
+                    RDN = 2, // Round Down (towards −infinity)
+                    RUP = 3, // Round Up (towards +infinity)
+                    RMM = 4, // Round to Nearest, ties to Max Magnitude
+                };
+
+                /*
+                const char* CSR_NumToStr(RISCV64CSR csr)
+                {
+                    switch (csr){
+                    case RISCV64CSR::FFLAGS : return "FFLAGS";
+                    case RISCV64CSR::FRM    : return "FRM";
+                    case RISCV64CSR::FCSR   : return "FCSR";
+                    case RISCV64CSR::CYCLE  : return "CYCLE";
+                    case RISCV64CSR::TIME   : return "TIME";
+                    case RISCV64CSR::INSTRET: return "INSTRET";
+                    default                 : return "<invalid>";
+                    }
+                }*/
+
+                u64 GetCSR_Value(OpEmulationState* opState, RISCV64CSR csrNum)
+                {
+                    ProcessState* process = opState->GetProcessState();
+                    switch (csrNum) {
+                    case RISCV64CSR::FFLAGS:
+                    case RISCV64CSR::FRM:
+                        return process->GetControlRegister(static_cast<u64>(csrNum));
+
+                    case RISCV64CSR::FCSR:
+                        return
+                            process->GetControlRegister(static_cast<u64>(RISCV64CSR::FFLAGS)) |
+                            (process->GetControlRegister(static_cast<u64>(RISCV64CSR::FRM)) << 5);
+
+                    case RISCV64CSR::CYCLE:
+                    case RISCV64CSR::TIME:
+                    case RISCV64CSR::INSTRET:
+                        return process->GetVirtualSystem()->GetInsnTick();
+                    default:
+                        RUNTIME_WARNING("Unimplemented CSR is read: %d", static_cast<int>(csrNum));
+                        return process->GetControlRegister(static_cast<u64>(csrNum));
+                    }
+                }
+                
+                void SetCSR_Value(OpEmulationState* opState, RISCV64CSR csrNum, u64 value)
+                {
+                    ProcessState* process = opState->GetProcessState();
+                    switch (csrNum) {
+                    case RISCV64CSR::FFLAGS:
+                        process->SetControlRegister(static_cast<u64>(csrNum), ExtractBits(value, 0, 5));
+                        break;
+
+                    case RISCV64CSR::FRM:
+                        process->SetControlRegister(static_cast<u64>(csrNum), ExtractBits(value, 0, 2));
+                        break;
+
+                    case RISCV64CSR::FCSR:  // Map to FFLAGS/FRM
+                        process->SetControlRegister(static_cast<u64>(RISCV64CSR::FFLAGS), ExtractBits(value, 0, 5));
+                        process->SetControlRegister(static_cast<u64>(RISCV64CSR::FRM), ExtractBits(value, 5, 3));
+                        break;
+
+                    // These registers are read-only
+                    case RISCV64CSR::CYCLE:
+                    case RISCV64CSR::TIME:
+                    case RISCV64CSR::INSTRET:
+                        break;
+
+                    default:
+                        RUNTIME_WARNING("Unimplemented CSR is written: %d", static_cast<int>(csrNum));
+                        process->SetControlRegister(static_cast<u64>(csrNum), value);
+                    }
+                }
+
+            } // namespace `anonymous'
+
+            template <typename TDest, typename TSrc1, typename CSR_S>
             inline void RISCV64CSRRW(OpEmulationState* opState)
             {
-                TDest::SetOperand(opState, 0);
-                RUNTIME_WARNING("CSR is accessed.");
-                //TDest::SetOperand(opState, CSR_S()(opState));
-                //CSR_D::SetOperand(opState, TSrc1()(opState));
+                u64 srcValue = static_cast<u64>(SrcOperand<0>()(opState));
+                RISCV64CSR csrNum = (RISCV64CSR)CSR_S()(opState);
+                u64 csrValue = GetCSR_Value(opState, csrNum);
+                SetCSR_Value(opState, csrNum, srcValue);
+                TDest::SetOperand(opState, csrValue);
             }
 
-            template <typename TDest, typename CSR_D, typename TSrc1, typename CSR_S>
+            template <typename TDest, typename TSrc1, typename CSR_S>
             inline void RISCV64CSRRS(OpEmulationState* opState)
             {
-                TDest::SetOperand(opState, 0);
-                RUNTIME_WARNING("CSR is accessed.");
-                //TDest::SetOperand(opState, CSR_S()(opState));
-                //CSR_D::SetOperand(opState, TSrc1()(opState) | CSR_S()(opState));
+                u64 srcValue = static_cast<u64>(SrcOperand<0>()(opState));
+                RISCV64CSR csrNum = (RISCV64CSR)CSR_S()(opState);
+                u64 csrValue = GetCSR_Value(opState, csrNum);
+                SetCSR_Value(opState, csrNum, csrValue | srcValue);
+                TDest::SetOperand(opState, csrValue);    // Return the original value
             }
 
-            template <typename TDest, typename CSR_D, typename TSrc1, typename CSR_S>
+            template <typename TDest, typename TSrc1, typename CSR_S>
             inline void RISCV64CSRRC(OpEmulationState* opState)
             {
-                TDest::SetOperand(opState, 0);
-                RUNTIME_WARNING("CSR is accessed.");
-                //TDest::SetOperand(opState, CSR_S()(opState));
-                //CSR_D::SetOperand(opState, ~(TSrc1()(opState)) & CSR_S()(opState));
+                u64 srcValue = static_cast<u64>(SrcOperand<0>()(opState));
+                RISCV64CSR csrNum = (RISCV64CSR)CSR_S()(opState);
+                u64 csrValue = GetCSR_Value(opState, csrNum);
+                SetCSR_Value(opState, csrNum, csrValue & (~srcValue));
+                TDest::SetOperand(opState, csrValue);    // Return the original value
             }
             
+            // Return a current rounding mode specified by FRM
+            struct RISCV64RoundModeFromFCSR : public std::unary_function<EmulatorUtility::OpEmulationState, u64>
+            {
+                int operator()(EmulatorUtility::OpEmulationState* opState) const
+                {
+                    u64 frm = GetCSR_Value(opState, RISCV64CSR::FRM);
+                    switch (static_cast<RISCV64FRM>(frm)) {
+                    case RISCV64FRM::RNE:
+                        return FE_TONEAREST;
+                    case RISCV64FRM::RTZ:
+                        return FE_TOWARDZERO;
+                    case RISCV64FRM::RDN:
+                        return FE_DOWNWARD;
+                    case RISCV64FRM::RUP:
+                        return FE_UPWARD;
+                    case RISCV64FRM::RMM:
+                        return FE_TONEAREST;
+                    default:
+                        RUNTIME_WARNING("Undefined rounding mode: %d", (int)frm);
+                        return FE_TONEAREST;
+                    }
+                }
+            };
+
 
         } // namespace Operation {
     } // namespace RISCV64Linux {

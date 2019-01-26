@@ -56,7 +56,7 @@ using namespace Onikiri::POSIX;
 
 
 RISCV64LinuxSyscallConv::RISCV64LinuxSyscallConv(ProcessState* processState) : 
-    Linux32SyscallConv(processState)
+    Linux64SyscallConv(processState)
 {
 }
 
@@ -69,34 +69,32 @@ RISCV64LinuxSyscallConv::~RISCV64LinuxSyscallConv()
 
 namespace {
 
-    typedef s32 RISCV64_time_t;
+    typedef s64 RISCV64_time_t;
 
-    struct RISCV64_timespec
+    struct riscv64_timespec
     {
         RISCV64_time_t tv_sec;
         RISCV64_time_t tv_nsec;
     };
-
-    struct RISCV64_stat
+    
+    // "stat" structure is different for each ISA, so specific one is defined here
+    struct riscv64_stat
     {
         s64 st_dev;
-        s32 st_ino;
-        s32 __st_ino_pad;
+        s64 st_ino;
         s32 st_mode;
         s32 st_nlink;
         s32 st_uid;
         s32 st_gid;
         s64 st_rdev;
         s64 __pad1;
-        s32 st_size;
-        s32 __st_size_pad;
+        s64 st_size;
         s32 st_blksize;
         s32 __pad2;
-        s32 st_blocks;
-        s32 __st_blocks_pad;
-        RISCV64_timespec st_atim;
-        RISCV64_timespec st_mtim;
-        RISCV64_timespec st_ctim;
+        s64 st_blocks;
+        riscv64_timespec st_atim;
+        riscv64_timespec st_mtim;
+        riscv64_timespec st_ctim;
         s32 __glibc_reserved[2];
     };
     /*
@@ -153,7 +151,23 @@ static struct {
     SYSCALLNAME(mremap, 4, "pxxx"),
     SYSCALLNAME(readlinkat, 4, "nssn"),
     SYSCALLNAME(sigaction, 3 , "npp"),
+    SYSCALLNAME(fstatat, 4, "nspn"),
     SYSCALLNAME(ioctl, 3, "xxx"),
+    SYSCALLNAME(fcntl, 3, "nnp"),
+    SYSCALLNAME(faccessat, 4, "npnn"),
+    SYSCALLNAME(ftruncate, 2, "nn"),
+    SYSCALLNAME(unlinkat, 3, "nsn"),
+    SYSCALLNAME(clock_gettime, 2, "np"),
+    SYSCALLNAME(getrusage, 2, "xp"),
+    SYSCALLNAME(sysinfo, 1, "p"),
+    SYSCALLNAME(getrlimit, 2, "np"),
+    SYSCALLNAME(setrlimit, 2, "np"),
+    SYSCALLNAME(prlimit64, 4, "nnpp"),
+    SYSCALLNAME(chdir, 1, "s"),
+    SYSCALLNAME(pipe2, 1, "pn"),
+    SYSCALLNAME(clone , 1, "npppp"),
+    SYSCALLNAME(times, 1, "p"),
+
     /*
     SYSCALLNAME(readv, 3, "npn"),
     SYSCALLNAME(writev, 3, "npn"),
@@ -164,7 +178,6 @@ static struct {
     SYSCALLNAME(truncate, 2, "px"),
     SYSCALLNAME(ftruncate, 2, "nx"),
     SYSCALLNAME(fcntl, 3, "nnp"),
-    SYSCALLNAME(chdir, 1, "p"),
     SYSCALLNAME(fchdir, 1, "n"),
     SYSCALLNAME(mkdir, 2, "sx"),
     SYSCALLNAME(rmdir, 1, "s"),
@@ -174,7 +187,6 @@ static struct {
     SYSCALLNAME(mprotect, 3, "pxx"),
     SYSCALLNAME(chmod, 2, "sx"),
     SYSCALLNAME(time, 1, "p"),
-    SYSCALLNAME(times, 1, "p"),
     //SYSCALLNAME(settimeofday, 2, "pp"),
 
     SYSCALLNAME(uname, 1, "p"),
@@ -192,9 +204,6 @@ static struct {
     SYSCALLNAME(getegid, 0, ""),
     //SYSCALLNAME(setreuid, 2),
     //SYSCALLNAME(setregid, 2),
-    SYSCALLNAME(getrusage, 2, "xp"),
-    SYSCALLNAME(getrlimit, 2, "np"),
-    SYSCALLNAME(setrlimit, 2, "np"),
     SYSCALLNAME(dup, 1, "n"),
 
     SYSCALLNAME(rt_sigaction, 3, "xxx"),
@@ -272,8 +281,13 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
         syscall_write(opState);
         break;
     case syscall_id_fstat:
-        syscall_fstat32(opState);
+        syscall_fstat64(opState);
         break;
+
+    case syscall_id_chdir:
+        syscall_chdir(opState);
+        break;
+
     case syscall_id_exit:
     case syscall_id_exit_group:
         syscall_exit(opState);
@@ -291,7 +305,7 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
         syscall_unlink(opState);
         break;
     case syscall_id_stat:
-        syscall_stat32(opState);
+        syscall_stat64(opState);
         break;
 
     case syscall_id_sigaction:
@@ -312,6 +326,12 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
 
     case syscall_id_readlinkat:
         syscall_readlinkat(opState);
+        break;
+    case syscall_id_fstatat:
+        syscall_fstatat64(opState);
+        break;
+    case syscall_id_unlinkat:
+        syscall_unlinkat(opState);
         break;
 
     case syscall_id_munmap:
@@ -344,7 +364,47 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
     case syscall_id_getgid:
         syscall_getgid(opState);
         break;
-/*
+
+    case syscall_id_fcntl:
+        syscall_fcntl(opState);
+        break;
+
+    case syscall_id_faccessat:
+        syscall_faccessat(opState);
+        break;
+
+    case syscall_id_ftruncate:
+        syscall_ftruncate(opState);
+        break;
+
+    case syscall_id_clock_gettime:
+        syscall_clock_gettime(opState);
+        break;
+    case syscall_id_times:
+        syscall_times(opState);
+        break;
+
+    // gcc が実行時間の取得に使用
+    case syscall_id_getrusage:
+        syscall_ignore(opState);
+        break;
+
+    case syscall_id_sysinfo:
+        syscall_sysinfo(opState);
+        break;
+
+    // gcc が stack の拡張に使用するだけ
+    case syscall_id_getrlimit:
+        syscall_ignore(opState);
+        break;
+    case syscall_id_setrlimit:
+        syscall_ignore(opState);
+        break;
+    case syscall_id_prlimit64:
+        syscall_ignore(opState);
+        break;
+
+    /*
     case syscall_id_readv:
         syscall_readv(opState);
         break;
@@ -417,9 +477,6 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
     case syscall_id_time:
         syscall_time(opState);
         break;
-    case syscall_id_times:
-        syscall_times(opState);
-        break;
 
     case syscall_id_dup:
         syscall_dup(opState);
@@ -445,24 +502,21 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
         syscall_ignore(opState);
         break;
 
-    // gcc が stack の拡張に使用するだけ
-    case syscall_id_getrlimit:
-        syscall_ignore(opState);
-        break;
-    case syscall_id_setrlimit:
-        syscall_ignore(opState);
-        break;
 
     //case syscall_id_mkdir:
     //  syscall_mkdir(opState);
     //  break;
 
-    // gcc が実行時間の取得に使用
-    case syscall_id_getrusage:
-        syscall_ignore(opState);
-        break;
 
 */
+    case syscall_id_pipe2:
+        THROW_RUNTIME_ERROR("Unsupported syscall 'pipe2' is called");
+        break;
+
+    case syscall_id_clone:
+        THROW_RUNTIME_ERROR("Unsupported syscall 'clone' is called");
+        break;
+
     default:
         {
             stringstream ss;
@@ -479,26 +533,24 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
 }
 
 namespace {
-    const int PPC64_CLK_TCK = 100;
-
-    const int PPC64_MREMAP_MAYMOVE = 1;
-    const int PPC64_MAP_NORESERVE = 0x00040;
-    const int PPC64_MAP_ANONYMOUS = 0x20;
+    const int RISCV64_CLK_TCK = 100;
+    const int RISCV64_MREMAP_MAYMOVE = 1;
+    const int RISCV64_MAP_ANONYMOUS = 0x20;
 }
 
 int RISCV64LinuxSyscallConv::Get_MAP_ANONYMOUS()
 {
-    return PPC64_MAP_ANONYMOUS;
+    return RISCV64_MAP_ANONYMOUS;
 }
 
 int RISCV64LinuxSyscallConv::Get_MREMAP_MAYMOVE()
 {
-    return PPC64_MREMAP_MAYMOVE;
+    return RISCV64_MREMAP_MAYMOVE;
 }
 
 int RISCV64LinuxSyscallConv::Get_CLK_TCK()
 {
-    return PPC64_CLK_TCK;
+    return RISCV64_CLK_TCK;
 }
 
 u32 RISCV64LinuxSyscallConv::OpenFlagTargetToHost(u32 flag)
@@ -535,51 +587,7 @@ u32 RISCV64LinuxSyscallConv::OpenFlagTargetToHost(u32 flag)
 
     return conv.TargetToHost(flag);
 }
-
-// Implementation of fstat for 32bit environment
-void RISCV64LinuxSyscallConv::syscall_fstat32(EmulatorUtility::OpEmulationState* opState)
-{
-    HostStat st;
-    int result = GetVirtualSystem()->FStat((int)m_args[1], &st);
-    if (result == -1) {
-        SetResult(false, GetVirtualSystem()->GetErrno());
-    }
-    else {
-#ifdef HOST_IS_WINDOWS
-        /*
-        st.st_rdev は Windows では st.st_dev と同じだが、
-        (http://msdn.microsoft.com/ja-jp/library/14h5k7ff.aspx)
-        Linux では特殊なファイルの場合ここの値が変わる。
-        標準出力だとどうやら 0x8801 になるらしい？（要出典）
-        この st_rdev で実行パスが変わることがあるため、ホストの入出力を使用する場合は
-        とりあえず 0x8801 とする。
-        （例えば mcf では if(st.st_rdev >> 4) で Copyright の書込み先を変えるようで、
-        そのためにここの値が正しくないと実行パスが変わる）
-        */
-        if(GetVirtualSystem()->GetDelayUnlinker()->GetMapPath((int)m_args[1]) == "HostIO"){
-            st.st_rdev = 0x8801;
-        }
-#endif
-        write_stat32((u64)m_args[2], st);
-        SetResult(true, result);
-    }
-}
-void RISCV64LinuxSyscallConv::syscall_stat32(OpEmulationState* opState)
-{
-    HostStat st;
-    string path = StrCpyToHost(GetMemorySystem(), m_args[1]);
-    int result = GetVirtualSystem()->Stat(path.c_str(), &st);
-    if (result == -1) {
-        SetResult(false, GetVirtualSystem()->GetErrno());
-    }
-    else {
-        write_stat32((u64)m_args[2], st);
-        SetResult(true, result);
-    }
-}
-
-
-void RISCV64LinuxSyscallConv::write_stat32(u64 dest, const HostStat &src)
+void RISCV64LinuxSyscallConv::write_stat64(u64 dest, const HostStat &src)
 {
     static u32 host_st_mode[] =
     {
@@ -595,16 +603,16 @@ void RISCV64LinuxSyscallConv::write_stat32(u64 dest, const HostStat &src)
         0100000, // _S_IFREG
         0010000, // _S_IFIFO
     };
-    static int st_mode_size = sizeof(host_st_mode)/sizeof(host_st_mode[0]);
+    static int st_mode_size = sizeof(host_st_mode) / sizeof(host_st_mode[0]);
     SyscallConstConvBitwise conv(
         host_st_mode,
-        RISCV64_st_mode, 
+        RISCV64_st_mode,
         st_mode_size
     );
 
-    TargetBuffer buf(GetMemorySystem(), dest, sizeof(RISCV64_stat));
-    RISCV64_stat* t_buf = static_cast<RISCV64_stat*>(buf.Get());
-    memset(t_buf, 0, sizeof(RISCV64_stat));
+    TargetBuffer buf(GetMemorySystem(), dest, sizeof(riscv64_stat));
+    riscv64_stat* t_buf = static_cast<riscv64_stat*>(buf.Get());
+    memset(t_buf, 0, sizeof(riscv64_stat));
 
     t_buf->st_dev = src.st_dev;
     t_buf->st_ino = src.st_ino;
@@ -625,9 +633,9 @@ void RISCV64LinuxSyscallConv::write_stat32(u64 dest, const HostStat &src)
     //              CentOS4 では8 刻みになる？
 
 #if defined(HOST_IS_WINDOWS) || defined(HOST_IS_CYGWIN)
-    static const int BLOCK_UNIT = 512*8;
-    t_buf->st_mode    = conv.HostToTarget(src.st_mode);
-    t_buf->st_blocks  = (src.st_size+BLOCK_UNIT-1)/BLOCK_UNIT*8;
+    static const int BLOCK_UNIT = 512 * 8;
+    t_buf->st_mode = conv.HostToTarget(src.st_mode);
+    t_buf->st_blocks = (src.st_size + BLOCK_UNIT - 1) / BLOCK_UNIT * 8;
     t_buf->st_blksize = 32768;
 #else
     t_buf->st_blocks = src.st_blocks;
@@ -653,4 +661,6 @@ void RISCV64LinuxSyscallConv::write_stat32(u64 dest, const HostStat &src)
     EndianHostToSpecifiedInPlace(t_buf->st_blocks, bigEndian);
     EndianHostToSpecifiedInPlace(t_buf->st_blksize, bigEndian);
 }
+
+
 

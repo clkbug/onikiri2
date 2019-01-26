@@ -106,6 +106,7 @@ namespace Onikiri {
 
             virtual void syscall_lseek(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_unlink(EmulatorUtility::OpEmulationState* opState);
+            virtual void syscall_unlinkat(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_rename(EmulatorUtility::OpEmulationState* opState);
 
             virtual void syscall_mmap(EmulatorUtility::OpEmulationState* opState);
@@ -137,11 +138,15 @@ namespace Onikiri {
             virtual void syscall_setgroups(EmulatorUtility::OpEmulationState* opState);
 
             virtual void syscall_access(EmulatorUtility::OpEmulationState* opState);
+            virtual void syscall_faccessat(EmulatorUtility::OpEmulationState* opState);
         //  virtual void syscall_fstat(EmulatorUtility::OpEmulationState* opState);
+
+            virtual void syscall_chdir(EmulatorUtility::OpEmulationState* opState);
+
             virtual void syscall_stat64(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_lstat64(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_fstat64(EmulatorUtility::OpEmulationState* opState);
-
+            virtual void syscall_fstatat64(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_ioctl(EmulatorUtility::OpEmulationState* opState);
 //          virtual void syscall_readlink(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_mkdir(EmulatorUtility::OpEmulationState* opState);
@@ -156,9 +161,13 @@ namespace Onikiri {
             void kill_helper(EmulatorUtility::OpEmulationState* opState, int pid, int sig);
 
             virtual void syscall_ignore(EmulatorUtility::OpEmulationState* opState);
+
             virtual void syscall_time(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_times(EmulatorUtility::OpEmulationState* opState);
             virtual void syscall_gettimeofday(EmulatorUtility::OpEmulationState* opState);
+            virtual void syscall_clock_gettime(EmulatorUtility::OpEmulationState* opState);
+            
+            virtual void syscall_sysinfo(EmulatorUtility::OpEmulationState* opState);
 
             virtual void syscall_getcwd(EmulatorUtility::OpEmulationState* opState);
 

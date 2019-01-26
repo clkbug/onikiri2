@@ -32,6 +32,7 @@
 #include <pch.h>
 
 #include "Emu/RISCV64Linux/RISCV64Decoder.h"
+#include "Emu/RISCV64Linux/RISCV64Info.h"
 
 #include "SysDeps/Endian.h"
 #include "Emu/Utility/DecoderUtility.h"
@@ -182,24 +183,30 @@ void RISCV64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     }
 
     case OP_ECALL:
-        if (ExtractBits<u64>(codeWord, 12, 3) == 0x1 || 
-            ExtractBits<u64>(codeWord, 12, 3) == 0x2 || 
-            ExtractBits<u64>(codeWord, 12, 3) == 0x3
-        ) {
+    {
+        u64 bits12_14 = ExtractBits<u64>(codeWord, 12, 3);
+        if (bits12_14 == 0x1 || bits12_14 == 0x2 || bits12_14 == 0x3) {
+            // csrrw/csrrs/csrrc
             out->Reg[0] = ExtractBits(codeWord, 7, 5);          // rd 
             out->Reg[1] = ExtractBits(codeWord, 15, 5);         // rs1
-            out->Reg[2] = ExtractBits(codeWord, 25, 12) + 65;   // csr
+            out->Imm[0] = ExtractBits(codeWord, 20, 12);        // csr number
         }
-        else if (
-            ExtractBits<u64>(codeWord, 12, 3) == 0x5 || 
-            ExtractBits<u64>(codeWord, 12, 3) == 0x6 || 
-            ExtractBits<u64>(codeWord, 12, 3) == 0x7
-        ) {
-            out->Reg[0] = ExtractBits(codeWord, 7, 5);              // rd
-            out->Imm[0] = ExtractBits<u64>(codeWord, 15, 5, true);  // imm
-            out->Reg[1] = ExtractBits(codeWord, 20, 12) + 65;       // csr
+        else if (bits12_14 == 0x5 || bits12_14 == 0x6 || bits12_14 == 0x7) {
+            // csrrwi/csrrsi/csrrci
+            out->Reg[0] = ExtractBits(codeWord, 7, 5);          // rd
+            out->Imm[0] = ExtractBits<u64>(codeWord, 15, 5);    // imm
+            out->Imm[1] = ExtractBits(codeWord, 20, 12);        // csr number
+        }
+        else if (bits12_14 == 0x0) {
+            // ecall/ebreak
+            // These instructions do not have specific operands
+        }
+        else {
+            // Unknown instruction
+            // An unknown instruction can be fetchd becahuse instructions are fetched speculatively, 
         }
         break;
+    }
 
     case OP_IMMW:
         out->Reg[0] = ExtractBits(codeWord, 7, 5);      // rd
@@ -228,7 +235,7 @@ void RISCV64Decoder::Decode(u32 codeWord, DecodedInsn* out)
     case OP_FST:
     {
         out->Reg[0] = ExtractBits(codeWord, 15, 5);     // rs1
-        out->Reg[1] = ExtractBits(codeWord, 20, 5);     // rs2
+        out->Reg[1] = ExtractBits(codeWord, 20, 5) + 32;     // rs2
 
         u64 imm =
             (ExtractBits<u64>(codeWord, 7, 5) << 0) |
@@ -265,24 +272,39 @@ void RISCV64Decoder::Decode(u32 codeWord, DecodedInsn* out)
         out->Reg[3] = ExtractBits(codeWord, 27, 5) + 32;     // rs3
         break;
 
-    case OP_FLOAT: //正しい？
-        if(ExtractBits<u64>(codeWord, 26, 6) == 0x38){
-            out->Reg[0] = ExtractBits(codeWord, 7, 5);           // rd 整数レジスタ
-            out->Reg[1] = ExtractBits(codeWord, 15, 5) + 32;     // rs1
+    case OP_FLOAT:
+    {
+        u32 bits_31_30 = ExtractBits(codeWord, 30, 2);
+        u32 bits_28 = ExtractBits(codeWord, 28, 1);
+        if (bits_31_30 == 3) { // FCVT/FMV/FCLASS
+            if (bits_28) {
+                out->Reg[0] = ExtractBits(codeWord, 7, 5) + 32;      // rd  (fp)
+                out->Reg[1] = ExtractBits(codeWord, 15, 5);          // rs1 (int)
+            }
+            else{
+                out->Reg[0] = ExtractBits(codeWord, 7, 5);           // rd  (int)
+                out->Reg[1] = ExtractBits(codeWord, 15, 5) + 32;     // rs1 (fp)
+            }
         }
-        else if(ExtractBits<u64>(codeWord, 26, 6) == 0x3c){
-          out->Reg[0] = ExtractBits(codeWord, 7, 5) + 32;      // rd 
-          out->Reg[1] = ExtractBits(codeWord, 15, 5);          // rs1 整数レジスタ
+        else if (bits_31_30 == 2) { // FEQ/FLT/FLE
+            out->Reg[0] = ExtractBits(codeWord, 7, 5);          // rd  (int)
+            out->Reg[1] = ExtractBits(codeWord, 15, 5) + 32;    // rs1 (fp)
+            out->Reg[2] = ExtractBits(codeWord, 20, 5) + 32;    // rs2 (fp)
         }
-        else{
-          out->Reg[0] = ExtractBits(codeWord, 7, 5) + 32;      // rd
-            out->Reg[1] = ExtractBits(codeWord, 15, 5) + 32;     // rs1
-            out->Reg[2] = ExtractBits(codeWord, 20, 5) + 32;     // rs2
+        else {
+            out->Reg[0] = ExtractBits(codeWord, 7, 5) + 32;     // rd  (fp)
+            out->Reg[1] = ExtractBits(codeWord, 15, 5) + 32;    // rs1 (fp)
+            out->Reg[2] = ExtractBits(codeWord, 20, 5) + 32;    // rs2 (fp)
         }
         break;
-
+    }
     default:
         //THROW_RUNTIME_ERROR("Unknown op code");
         break;
     }
+#ifdef ONIKIRI_DEBUG
+    for (int reg : out->Reg) {  // if ONIKIRI_DEBUG is not defined, it causes warning.
+        ASSERT( -1 <= reg && reg < RISCV64Info::RegisterCount, "The decoded register number (%d) is out of range.", reg );
+    }
+#endif
 }
