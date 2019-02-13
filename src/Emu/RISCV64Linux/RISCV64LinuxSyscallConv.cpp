@@ -165,8 +165,16 @@ static struct {
     SYSCALLNAME(prlimit64, 4, "nnpp"),
     SYSCALLNAME(chdir, 1, "s"),
     SYSCALLNAME(pipe2, 1, "pn"),
-    SYSCALLNAME(clone , 1, "npppp"),
+    SYSCALLNAME(clone , 5, "npppp"),
     SYSCALLNAME(times, 1, "p"),
+    SYSCALLNAME(getdents64, 3, "npn"),
+    SYSCALLNAME(getuid, 0, ""),
+    SYSCALLNAME(getgid, 0, ""),
+    SYSCALLNAME(geteuid, 0, ""),
+    SYSCALLNAME(getegid, 0, ""),
+    SYSCALLNAME(getpid, 0, ""),
+    SYSCALLNAME(mkdirat, 3, "nsx"),
+    SYSCALLNAME(renameat, 3, "nss"),
 
     /*
     SYSCALLNAME(readv, 3, "npn"),
@@ -183,7 +191,6 @@ static struct {
     SYSCALLNAME(rmdir, 1, "s"),
     SYSCALLNAME(readlink, 3, "spx"),
     SYSCALLNAME(link, 2, "ss"),
-    SYSCALLNAME(rename, 2, "ss"),
     SYSCALLNAME(mprotect, 3, "pxx"),
     SYSCALLNAME(chmod, 2, "sx"),
     SYSCALLNAME(time, 1, "p"),
@@ -195,13 +202,9 @@ static struct {
 
     SYSCALLNAME(gettid, 0, ""),
     SYSCALLNAME(setuid, 1, "x"),
-    SYSCALLNAME(getuid, 0, ""),
     //SYSCALLNAME(seteuid, 1, "x"),
     SYSCALLNAME(setgid, 1, "x"),
-    SYSCALLNAME(getgid, 0, ""),
     //SYSCALLNAME(setegid, 1, "x"),
-    SYSCALLNAME(geteuid, 0, ""),
-    SYSCALLNAME(getegid, 0, ""),
     //SYSCALLNAME(setreuid, 2),
     //SYSCALLNAME(setregid, 2),
     SYSCALLNAME(dup, 1, "n"),
@@ -270,6 +273,10 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
         break;
     case syscall_id_close:
         syscall_close(opState);
+        break;
+
+    case syscall_id_getdents64:
+        syscall_getdents64(opState);
         break;
     case syscall_id_lseek:
         syscall_lseek(opState);
@@ -404,6 +411,12 @@ void RISCV64LinuxSyscallConv::Execute(OpEmulationState* opState)
         syscall_ignore(opState);
         break;
 
+    case syscall_id_mkdirat:
+        syscall_mkdirat(opState);
+        break;
+    case syscall_id_renameat:
+        syscall_renameat(opState);
+        break;
     /*
     case syscall_id_readv:
         syscall_readv(opState);
@@ -553,6 +566,8 @@ int RISCV64LinuxSyscallConv::Get_CLK_TCK()
     return RISCV64_CLK_TCK;
 }
 
+// LinuxSyscallConv calls this method when open() is called
+// because these flags seem to depend on each architecture?
 u32 RISCV64LinuxSyscallConv::OpenFlagTargetToHost(u32 flag)
 {
     static u32 host_open_flags[] =
@@ -565,9 +580,12 @@ u32 RISCV64LinuxSyscallConv::OpenFlagTargetToHost(u32 flag)
         //O_NONBLOCK,
         //O_SYNC,
         POSIX_O_TRUNC,
+        POSIX_O_DIRECTORY,
     };
+
     // see bits/fcntl.h
-    static u32 ppc64_open_flags[] =
+    // or linux-headers/include/asm-generic/fcntl.h
+    static u32 riscv64_open_flags[] =
     {
         00, 01, 02, // O_RDONLY, O_WRONLY, O_RDWR,
         02000,  // O_APPEND
@@ -576,17 +594,20 @@ u32 RISCV64LinuxSyscallConv::OpenFlagTargetToHost(u32 flag)
         //00400,    // O_NOCTTY
         //04000,    // O_NONBLOCK
         //010000,   // O_SYNC
-        01000,  // O_TRUNC
+        01000,      // O_TRUNC
+        00200000    // O_DIRECTORY	
     };
     static int open_flags_size = sizeof(host_open_flags)/sizeof(host_open_flags[0]);
 
     SyscallConstConvBitwise conv(
         host_open_flags,
-        ppc64_open_flags, 
-        open_flags_size);
+        riscv64_open_flags,
+        open_flags_size
+    );
 
     return conv.TargetToHost(flag);
 }
+
 void RISCV64LinuxSyscallConv::write_stat64(u64 dest, const HostStat &src)
 {
     static u32 host_st_mode[] =

@@ -161,6 +161,13 @@ namespace {
         //u8 linux64_f[20 - 2 * sizeof(u64) - sizeof(u32)];   // padding
     };
 
+    struct linux64_dirent {
+        u64 d_ino;
+        s64 d_off;
+        u16 d_reclen;
+        u8  d_type;   
+        char d_name[256];
+    };
 
     //const int LINUX_F_DUPFD = 0;
     const int LINUX_F_GETFD = 1;
@@ -178,6 +185,9 @@ namespace {
     const int LINUX_AT_FDCWD = -100;
     const int LINUX_AT_SYMLINK_NOFOLLO = 0x100;
     const int LINUX_AT_REMOVEDIR = 0x200;
+
+    const int LINUX_DT_DIR = 4;
+    const int LINUX_DT_REG = 8;
 }
 
 
@@ -505,6 +515,42 @@ void Linux64SyscallConv::syscall_readlinkat(OpEmulationState* opState)
         SetResult(true, 0);
     }
 }
+
+// getdents64 cannot be available in Windows/Cygwin directly,
+// so this system call is emulated in software.
+void Linux64SyscallConv::syscall_getdents64(EmulatorUtility::OpEmulationState* opState)
+{
+    int fd = (int)m_args[1];
+    u64 maxSize = m_args[3];
+    bool isBigEndian = GetMemorySystem()->IsBigEndian();
+
+    TargetBuffer buf(GetMemorySystem(), m_args[2], maxSize);
+    linux64_dirent* dirent = static_cast<linux64_dirent*>(buf.Get());
+    size_t size = 0;
+
+    while (size + sizeof(linux64_dirent) <= maxSize) {
+        HostDirent hostDirEnt;
+        int ret = GetVirtualSystem()->GetDents(fd, &hostDirEnt);
+        if (ret == -1) {
+            SetResult(false, 1);    // 1: Operation not permitted
+            return;
+        }
+        if (ret == 0) { // Reach to the end of a stream
+            break;
+        }
+
+        dirent->d_ino = hostDirEnt.ino;
+        dirent->d_reclen = EndianHostToSpecified((u16)sizeof(linux64_dirent), isBigEndian);
+        dirent->d_off = EndianHostToSpecified((s64)size, isBigEndian);
+        dirent->d_type = hostDirEnt.isDir ? LINUX_DT_DIR : LINUX_DT_REG;
+        strncpy(dirent->d_name, hostDirEnt.name.c_str(), sizeof(dirent->d_name));
+
+        size += sizeof(linux64_dirent);
+        dirent++;
+    }
+    SetResult(true, (u64)size);
+}
+
 void Linux64SyscallConv::syscall_lseek(OpEmulationState* opState)
 {
     s64 result = GetVirtualSystem()->LSeek((int)m_args[1], m_args[2], (int)SeekWhenceTargetToHost((u32)m_args[3]));
@@ -533,7 +579,7 @@ void Linux64SyscallConv::syscall_fstat64(OpEmulationState* opState)
         （例えば mcf では if(st.st_rdev >> 4) で Copyright の書込み先を変えるようで、
         そのためにここの値が正しくないと実行パスが変わる）
         */
-        if(GetVirtualSystem()->GetDelayUnlinker()->GetMapPath((int)m_args[1]) == "HostIO"){
+        if(GetVirtualSystem()->IsFDTargetHostIO((int)m_args[1])){
             st.st_rdev = 0x8801;
         }
 #endif
@@ -633,6 +679,59 @@ void Linux64SyscallConv::syscall_mkdir(OpEmulationState* opState)
     else {
         SetResult(true, result);
     }
+}
+
+void Linux64SyscallConv::syscall_mkdirat(OpEmulationState* opState)
+{
+    s64 fd = (s64)m_args[1];
+    string path = StrCpyToHost(GetMemorySystem(), m_args[2]);
+    int result = -1;
+    /*
+    ファイルディスクリプタが AT_FDCWD (-100) の場合は
+    working directory からの相対パスとなる
+    なので通常の mkdir と同じ動作をする
+    */
+    if (fd == LINUX_AT_FDCWD) {
+        result = GetVirtualSystem()->MkDir(path.c_str(), (int)m_args[3]);
+    }
+    else {
+        THROW_RUNTIME_ERROR(
+            "'mkdirat' does not support reading fd other than 'AT_FDCWD (-100)', "
+            "but '%d' is specified.", fd
+        );
+    }
+    if (result == -1) {
+        SetResult(false, GetVirtualSystem()->GetErrno());
+    }
+    else {
+        SetResult(true, result);
+    }
+}
+
+void Linux64SyscallConv::syscall_renameat(OpEmulationState* opState)
+{
+    s64 oldfd = (s64)m_args[1];
+    String oldPath = StrCpyToHost(GetMemorySystem(), m_args[2]);
+    s64 newfd = (s64)m_args[3];
+    String newPath = StrCpyToHost(GetMemorySystem(), m_args[4]);
+    int result = -1;
+    // ファイルディスクリプタが AT_FDCWD (-100) の場合は working directory からの相対パスとなる
+    if (oldfd == LINUX_AT_FDCWD && newfd == LINUX_AT_FDCWD) {
+        result = GetVirtualSystem()->Rename(oldPath, newPath);
+    }
+    else {
+        THROW_RUNTIME_ERROR(
+            "'renameat' does not support reading fd other than 'AT_FDCWD (-100)', "
+            "but '%d' and '%d' are specified.", oldfd, newfd
+        );
+    }
+    if (result == -1) {
+        SetResult(false, GetVirtualSystem()->GetErrno());
+    }
+    else {
+        SetResult(true, result);
+    }
+
 }
 
 void Linux64SyscallConv::syscall_setgid32(OpEmulationState* opState)

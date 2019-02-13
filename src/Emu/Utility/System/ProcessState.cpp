@@ -36,6 +36,7 @@
 #include "Env/Env.h"
 #include "SysDeps/posix.h"
 
+#include "Emu/Utility/System/VirtualPath.h"
 #include "Emu/Utility/System/VirtualSystem.h"
 #include "Emu/Utility/System/Syscall/SyscallConvIF.h"
 #include "Emu/Utility/System/Memory/MemorySystem.h"
@@ -73,7 +74,7 @@ ProcessCreateParam::~ProcessCreateParam()
     ReleaseParam();
 }
 
-const String ProcessCreateParam::GetTargetBasePath() const
+const VirtualPath ProcessCreateParam::GetTargetBasePath() const
 {
     ParamXMLPath xPath;
     xPath.AddArray( 
@@ -91,13 +92,16 @@ const String ProcessCreateParam::GetTargetBasePath() const
         );
     }
 
-    filesystem::path xmlDirPath( xmlFilePath.c_str() );
+    filesystem::path xmlDirPath(xmlFilePath.c_str());
     xmlDirPath.remove_filename();
+    auto basePath = xmlDirPath.append(m_targetBasePath);
 
-    return CompletePath( 
-        m_targetBasePath, 
-        xmlDirPath.string()
-    );
+    VirtualPath virtualBasePath;
+    virtualBasePath.SetGuestRoot("/ONIKIRI_ROOT/");
+    virtualBasePath.SetHostRoot(basePath.string());
+    virtualBasePath.SetVirtualPath("./");
+
+    return virtualBasePath;
 }
 
 ProcessState::ProcessState(int pid)
@@ -173,17 +177,15 @@ void ProcessState::Init(
         m_syscallConv->SetSystem( simSystem );
         m_loader = loader;
 
-        const string& targetBase = pcp.GetTargetBasePath();
+        const VirtualPath targetBase = pcp.GetTargetBasePath();
 
-        m_virtualSystem->SetInitialWorkingDir(
-            CompletePath( pcp.GetTargetWorkPath(), targetBase )
-        );
+        VirtualPath workDir = targetBase;
+        workDir.SetVirtualPath(pcp.GetTargetWorkPath());
+        m_virtualSystem->SetInitialWorkingDir(workDir);
 
-        const string& cmdFileName = CompletePath(pcp.GetCommand(), targetBase);
-        m_loader->LoadBinary(
-            m_memorySystem,
-            cmdFileName
-        );
+        VirtualPath cmdFileName = targetBase;
+        cmdFileName.SetVirtualPath(pcp.GetCommand());
+        m_loader->LoadBinary(m_memorySystem, cmdFileName.ToHost());
         m_virtualSystem->SetCommandFileName(cmdFileName);
 
         m_codeRange = m_loader->GetCodeRange();
@@ -227,12 +229,12 @@ void ProcessState::InitMemoryMap(const ProcessCreateParam& pcp)
     //u64 stack = m_memorySystem->MMap(0, stackBytes);
 
     // 引数の設定
-    string targetBase = pcp.GetTargetBasePath();
+    VirtualPath targetBase = pcp.GetTargetBasePath();
     m_loader->InitArgs(
         m_memorySystem,
         stack, 
         stackBytes, 
-        CompletePath( pcp.GetCommand(), targetBase ),
+        targetBase.CompleteInGuest(pcp.GetCommand()), // for argv, this path is virtual one
         pcp.GetCommandArguments() 
     );
 
@@ -253,9 +255,6 @@ void ProcessState::InitMemoryMap(const ProcessCreateParam& pcp)
 
 void ProcessState::InitTargetStdIO(const ProcessCreateParam& pcp)
 {
-    string targetBase = pcp.GetTargetBasePath();
-    string targetWork = 
-        CompletePath( pcp.GetTargetWorkPath(), targetBase );
 
 
     // stdin stdout stderr の設定
@@ -287,17 +286,21 @@ void ProcessState::InitTargetStdIO(const ProcessCreateParam& pcp)
     for (int i = 0; i < 3; i ++) {
         if (std_filename[i].empty()) {
             // 入出力として指定されたファイル名が空ならばホストの入出力を使用する
-            m_virtualSystem->AddFDMap(std_fd[i], std_fd[i], false);
-            m_virtualSystem->GetDelayUnlinker()->AddMap(std_fd[i], "HostIO");
+            String hostIO_Name = m_virtualSystem->GetHostIO_Name();
+            m_virtualSystem->AddFDMap(std_fd[i], std_fd[i], hostIO_Name, false);
+            m_virtualSystem->GetDelayUnlinker()->AddMap(std_fd[i], hostIO_Name);
         }
         else {
+            VirtualPath targetBase = pcp.GetTargetBasePath();
+            String targetWork = targetBase.CompleteInHost(pcp.GetTargetWorkPath());
+
             string filename = CompletePath(std_filename[i], targetWork );
             FILE *fp = fopen( filename.c_str(), omode[i].c_str() );
             if (fp == NULL) {
                 THROW_RUNTIME_ERROR("Cannot open file '%s'.", filename.c_str());
             }
             m_autoCloseFile.push_back(fp);
-            m_virtualSystem->AddFDMap(std_fd[i], posix_fileno(fp), false);
+            m_virtualSystem->AddFDMap(std_fd[i], posix_fileno(fp), filename, false);
             m_virtualSystem->GetDelayUnlinker()->AddMap(std_fd[i], filename);
         }
     }

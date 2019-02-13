@@ -1122,6 +1122,9 @@
     <ClInclude Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHTSystem.h">
       <Filter>src\Emu\STRAIGHT64Linux</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\Emu\Utility\System\VirtualPath.h">
+      <Filter>src\Emu\Utility\System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\Main.cpp">
@@ -1624,6 +1627,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\Emu\STRAIGHT64Linux\STRAIGHTSystem.cpp">
       <Filter>src\Emu\STRAIGHT64Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\Emu\Utility\System\VirtualPath.cpp">
+      <Filter>src\Emu\Utility\System</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
